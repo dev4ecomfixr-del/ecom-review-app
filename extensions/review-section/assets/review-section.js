@@ -7,6 +7,19 @@
     const productHandle = widget.dataset.productHandle;
     const productTitle = widget.dataset.productTitle;
     const proxyPath = widget.dataset.proxyPath || "/apps/reviews";
+    const carouselAutoplay = widget.dataset.reviewCarouselAutoplay !== "false";
+    const carouselSpeed = Math.max(
+      3,
+      Math.min(12, Number(widget.dataset.reviewCarouselSpeed) || 5),
+    );
+    const infiniteSpeed = Math.max(
+      3,
+      Math.min(12, Number(widget.dataset.reviewInfiniteSpeed) || 5),
+    );
+    widget.style.setProperty(
+      "--review-infinite-duration",
+      `${infiniteSpeed * 3}s`,
+    );
     const form = widget.querySelector("[data-review-form]");
     const list = widget.querySelector("[data-review-list]");
     const message = widget.querySelector("[data-review-message]");
@@ -18,8 +31,37 @@
     const progressBar = widget.querySelector("[data-review-progress-bar]");
     const progressLabel = widget.querySelector("[data-review-progress-label]");
     const submitButton = form.querySelector('button[type="submit"]');
+    const formPanel = widget.querySelector("[data-review-form-panel]");
+    const formToggle = widget.querySelector("[data-review-form-toggle]");
+    const searchInput = widget.querySelector("[data-review-search]");
+    const sortSelect = widget.querySelector("[data-review-sort]");
+    const ratingFilter = widget.querySelector("[data-review-rating-filter]");
+    const reviewToolbar = widget.querySelector(".ecom-reviewer__toolbar");
+    const averageOutput = widget.querySelector("[data-review-average]");
+    const countOutput = widget.querySelector("[data-review-count]");
+    const resultsCountOutput = widget.querySelector("[data-review-results-count]");
+    const carouselPrevious = widget.querySelector("[data-review-carousel-prev]");
+    const carouselNext = widget.querySelector("[data-review-carousel-next]");
+    const pagination = widget.querySelector("[data-review-pagination]");
+    const pagePrevious = widget.querySelector("[data-review-page-prev]");
+    const pageNext = widget.querySelector("[data-review-page-next]");
+    const paginationPages = widget.querySelector("[data-review-pagination-pages]");
+    const usesPagination = [1, 2, 3, 4, 5].some((layout) =>
+      widget.classList.contains(`ecom-reviewer--layout-${layout}`),
+    );
+    const reviewsPerPage = 4;
+    const formToggleLabel = formToggle?.textContent.trim() || "Write a review";
     let reward = widget.querySelector("[data-review-reward]");
     let selectedMediaFiles = [];
+    let loadedReviews = [];
+    let currentReviewPage = 0;
+
+    formToggle?.addEventListener("click", () => {
+      const willOpen = formPanel.hidden;
+      formPanel.hidden = !willOpen;
+      formToggle.textContent = willOpen ? "Close review form" : formToggleLabel;
+      if (willOpen) formPanel.querySelector("input, textarea")?.focus();
+    });
 
     const copyCoupon = async (code) => {
       if (navigator.clipboard?.writeText) {
@@ -75,13 +117,19 @@
         ? `<img alt="" class="ecom-reviewer-reward__image" src="${escapeHtml(settings.imageUrl)}">`
         : '<div class="ecom-reviewer-reward__image-fallback">THANK YOU</div>';
       const buttonText = settings.discountCode || "Continue shopping";
+      const rewardHeading = String(
+        settings.heading || "Thank you for your review",
+      ).replaceAll(
+        "[[percentage]]",
+        `${Number(settings.discountValue) || 20}%`,
+      );
       reward.innerHTML = `
         <div class="ecom-reviewer-reward__backdrop" data-review-reward-close></div>
         <div aria-modal="true" class="ecom-reviewer-reward__dialog" role="dialog">
           <button aria-label="Close reward popup" class="ecom-reviewer-reward__close" data-review-reward-close type="button">×</button>
           ${image}
           <div class="ecom-reviewer-reward__content">
-            <h2>${escapeHtml(settings.heading || "Thank you for your review")}</h2>
+            <h2>${escapeHtml(rewardHeading)}</h2>
             <p>${escapeHtml(settings.message || "")}</p>
             ${settings.discountCode ? "<span>Your coupon code · Click to copy</span>" : ""}
             <button aria-label="Copy coupon code ${escapeHtml(buttonText)}" class="ecom-reviewer-reward__apply" data-review-reward-copy type="button">${escapeHtml(buttonText)}</button>
@@ -159,27 +207,176 @@
       request.send(formData);
     });
 
+    const updateSummary = (reviews) => {
+      const count = reviews.length;
+      const average = count
+        ? reviews.reduce((total, review) => total + Number(review.rating || 0), 0) / count
+        : 0;
+      if (averageOutput) averageOutput.textContent = average.toFixed(2);
+      if (countOutput) countOutput.textContent = String(count);
+      for (let rating = 1; rating <= 5; rating += 1) {
+        const bar = widget.querySelector(`[data-review-rating-bar="${rating}"]`);
+        const ratingCount = reviews.filter((review) => Number(review.rating) === rating).length;
+        if (bar) bar.style.width = `${count ? (ratingCount / count) * 100 : 0}%`;
+      }
+    };
+
     const renderReviews = (reviews) => {
       if (!reviews.length) {
         list.innerHTML = '<p class="ecom-reviewer__empty">No reviews yet.</p>';
         return;
       }
 
-      list.innerHTML = reviews
+      if (widget.classList.contains("ecom-reviewer--layout-7")) {
+        widget.style.setProperty(
+          "--review-infinite-duration",
+          `${Math.max(12, reviews.length * infiniteSpeed)}s`,
+        );
+      }
+
+      const reviewCards = reviews
         .map(
           (review) => `
             <article class="ecom-reviewer__item">
-              ${review.title ? `<h3>${escapeHtml(review.title)}</h3>` : ""}
-              <div class="ecom-reviewer__stars" aria-label="${review.rating} out of 5 stars">${stars(review.rating)} <span>${review.rating}/5</span></div>
-              <p>${escapeHtml(review.body)}</p>
-              ${renderMedia(review.photos || [])}
-              ${review.merchantReply ? `<div class="ecom-reviewer__merchant-reply"><strong>Store reply</strong><p>${escapeHtml(review.merchantReply)}</p></div>` : ""}
-              <small>${escapeHtml(review.customerName)}${review.createdAt ? ` · ${formatDate(review.createdAt)}` : ""}</small>
+              <div class="ecom-reviewer__review-card-head">
+                <div class="ecom-reviewer__author">
+                  <b>${escapeHtml(getInitials(review.customerName))}</b>
+                  <div>
+                    <strong>${escapeHtml(review.customerName || "Customer")}</strong>
+                    <small><span>✓</span> Verified buyer</small>
+                  </div>
+                </div>
+                <div class="ecom-reviewer__stars" aria-label="${review.rating} out of 5 stars">${stars(review.rating)}</div>
+              </div>
+              <div class="ecom-reviewer__review-content">
+                ${review.title ? `<h3>${escapeHtml(review.title)}</h3>` : ""}
+                <p>${escapeHtml(review.body)}</p>
+                ${renderMedia(review.photos || [])}
+                ${review.merchantReply ? `<div class="ecom-reviewer__merchant-reply"><strong>Store reply</strong><p>${escapeHtml(review.merchantReply)}</p></div>` : ""}
+              </div>
+              <div class="ecom-reviewer__review-card-footer">
+                <time>${review.createdAt ? formatDate(review.createdAt) : ""}</time>
+                <span class="ecom-reviewer__recommend">♥ <small>Would recommend</small></span>
+              </div>
             </article>
           `,
         )
         .join("");
+      list.innerHTML = widget.classList.contains("ecom-reviewer--layout-7")
+        ? `${reviewCards}${reviewCards.replaceAll("<article", '<article aria-hidden="true"')}`
+        : reviewCards;
     };
+
+    const applyReviewControls = () => {
+      const query = (searchInput?.value || "").trim().toLowerCase();
+      const selectedRating = ratingFilter?.value || "all";
+      const sort = sortSelect?.value || "newest";
+      const reviews = loadedReviews
+        .filter((review) => selectedRating === "all" || Number(review.rating) === Number(selectedRating))
+        .filter((review) => !query || [review.title, review.body, review.customerName]
+          .some((value) => String(value || "").toLowerCase().includes(query)))
+        .sort((a, b) => {
+          if (sort === "oldest") return new Date(a.createdAt) - new Date(b.createdAt);
+          if (sort === "highest") return Number(b.rating) - Number(a.rating);
+          if (sort === "lowest") return Number(a.rating) - Number(b.rating);
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        });
+      if (resultsCountOutput) resultsCountOutput.textContent = String(reviews.length);
+
+      if (!usesPagination) {
+        if (pagination) pagination.hidden = true;
+        renderReviews(reviews);
+        return;
+      }
+
+      const totalPages = Math.max(1, Math.ceil(reviews.length / reviewsPerPage));
+      currentReviewPage = Math.max(0, Math.min(currentReviewPage, totalPages - 1));
+      const pageStart = currentReviewPage * reviewsPerPage;
+
+      renderReviews(reviews.slice(pageStart, pageStart + reviewsPerPage));
+      if (pagination) pagination.hidden = reviews.length <= reviewsPerPage;
+      if (paginationPages) {
+        paginationPages.innerHTML = Array.from({ length: totalPages }, (_, index) => `
+          <button
+            aria-label="Go to review page ${index + 1}"
+            aria-current="${index === currentReviewPage ? "page" : "false"}"
+            class="${index === currentReviewPage ? "is-active" : ""}"
+            data-review-page="${index}"
+            type="button"
+          >${index + 1}</button>
+        `).join("");
+      }
+      if (pagePrevious) pagePrevious.disabled = currentReviewPage === 0;
+      if (pageNext) pageNext.disabled = currentReviewPage >= totalPages - 1;
+    };
+
+    [searchInput, sortSelect, ratingFilter].forEach((control) => {
+      control?.addEventListener(control === searchInput ? "input" : "change", () => {
+        currentReviewPage = 0;
+        applyReviewControls();
+      });
+    });
+
+    const showReviewPageTop = () => {
+      window.requestAnimationFrame(() => {
+        (reviewToolbar || list).scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    };
+
+    const changeReviewPage = (direction) => {
+      currentReviewPage += direction;
+      applyReviewControls();
+      showReviewPageTop();
+    };
+    pagePrevious?.addEventListener("click", () => changeReviewPage(-1));
+    pageNext?.addEventListener("click", () => changeReviewPage(1));
+    paginationPages?.addEventListener("click", (event) => {
+      const pageButton = event.target.closest("[data-review-page]");
+      if (!pageButton) return;
+      currentReviewPage = Number(pageButton.dataset.reviewPage);
+      applyReviewControls();
+      showReviewPageTop();
+    });
+
+    const scrollReviews = (direction) => {
+      list.scrollBy({
+        behavior: "smooth",
+        left: direction * Math.max(280, list.clientWidth * 0.82),
+      });
+    };
+    carouselPrevious?.addEventListener("click", () => scrollReviews(-1));
+    carouselNext?.addEventListener("click", () => scrollReviews(1));
+
+    let carouselAutoplayId;
+    const stopCarouselAutoplay = () => {
+      if (carouselAutoplayId) window.clearInterval(carouselAutoplayId);
+      carouselAutoplayId = undefined;
+    };
+    const startCarouselAutoplay = () => {
+      stopCarouselAutoplay();
+      if (
+        !carouselAutoplay ||
+        !widget.classList.contains("ecom-reviewer--layout-5") ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ) return;
+      carouselAutoplayId = window.setInterval(() => {
+        if (list.scrollWidth <= list.clientWidth) return;
+        const atEnd = list.scrollLeft + list.clientWidth >= list.scrollWidth - 8;
+        if (atEnd) {
+          list.scrollTo({ behavior: "smooth", left: 0 });
+        } else {
+          scrollReviews(1);
+        }
+      }, carouselSpeed * 1000);
+    };
+    list.addEventListener("pointerenter", stopCarouselAutoplay);
+    list.addEventListener("pointerleave", startCarouselAutoplay);
+    list.addEventListener("focusin", stopCarouselAutoplay);
+    list.addEventListener("focusout", startCarouselAutoplay);
+    startCarouselAutoplay();
 
     const loadReviews = async () => {
       const response = await fetch(makeUrl());
@@ -188,7 +385,10 @@
         throw new Error("The review service returned an invalid response.");
       }
       const data = await response.json();
-      renderReviews(data.reviews || []);
+      loadedReviews = data.reviews || [];
+      currentReviewPage = 0;
+      updateSummary(loadedReviews);
+      applyReviewControls();
     };
 
     const renderSelectedPhotos = () => {
@@ -332,6 +532,15 @@
       day: "numeric",
       year: "numeric",
     }).format(new Date(value));
+  }
+
+  function getInitials(value) {
+    return String(value || "Customer")
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("") || "C";
   }
 
   function renderMedia(media) {

@@ -11,8 +11,11 @@ import {
 import {
   DEFAULT_VIDEO_REVIEW_SETTINGS,
   DEFAULT_STAR_BADGE_SETTINGS,
+  DEFAULT_REVIEW_SECTION_SETTINGS,
+  getReviewSectionSettings,
   getStarBadgeSettings,
   getVideoReviewSettings,
+  saveReviewSectionSettings,
   saveVideoReviewSettings,
   saveStarBadgeSettings,
   syncStarBadgeAvailability,
@@ -39,6 +42,7 @@ export const loader = async ({ request }) => {
     shop: session.shop,
     videoReviewSettings: await getVideoReviewSettings(admin),
     starBadgeSettings: await getStarBadgeSettings(admin),
+    reviewSectionSettings: await getReviewSectionSettings(admin),
   };
 };
 
@@ -46,6 +50,21 @@ export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
   const intent = formData.get("intent");
+
+  if (intent === "save-review-section-settings") {
+    const raw = JSON.parse(String(formData.get("settings") || "{}"));
+    const settings = {
+      ...DEFAULT_REVIEW_SECTION_SETTINGS,
+      cardLayout: ["layout-1", "layout-2", "layout-3", "layout-4", "layout-5", "layout-6", "layout-7"].includes(raw.cardLayout)
+        ? raw.cardLayout
+        : "layout-1",
+      carouselAutoplay: Boolean(raw.carouselAutoplay),
+      carouselSpeed: Math.max(3, Math.min(12, Number(raw.carouselSpeed) || 5)),
+      infiniteSpeed: Math.max(3, Math.min(12, Number(raw.infiniteSpeed) || 5)),
+    };
+    await saveReviewSectionSettings(admin, settings);
+    return { ok: true, widget: "review-section", settings };
+  }
 
   if (intent === "save-star-badge-settings") {
     const raw = JSON.parse(String(formData.get("settings") || "{}"));
@@ -102,13 +121,18 @@ export default function Widgets() {
     shop,
     starBadgeSettings,
     videoReviewSettings,
+    reviewSectionSettings,
   } = useLoaderData();
+  const reviewSectionFetcher = useFetcher();
   const starSettingsFetcher = useFetcher();
   const videoSettingsFetcher = useFetcher();
   const [settings, setSettings] = useState(starBadgeSettings);
   const [starSettingsDirty, setStarSettingsDirty] = useState(false);
   const [videoSettings, setVideoSettings] = useState(videoReviewSettings);
   const [videoSettingsDirty, setVideoSettingsDirty] = useState(false);
+  const [reviewSection, setReviewSection] = useState(reviewSectionSettings);
+  const [reviewSectionDirty, setReviewSectionDirty] = useState(false);
+  const [reviewPreviewDevice, setReviewPreviewDevice] = useState("desktop");
   const [videoPreviewPage, setVideoPreviewPage] = useState(0);
   const [videoPreviewDevice, setVideoPreviewDevice] = useState("desktop");
   const videoStories = [
@@ -160,10 +184,239 @@ export default function Widgets() {
     if (starSettingsFetcher.data?.ok) setStarSettingsDirty(false);
   }, [starSettingsFetcher.data]);
 
+  useEffect(() => {
+    if (reviewSectionFetcher.data?.ok) setReviewSectionDirty(false);
+  }, [reviewSectionFetcher.data]);
+
   return (
     <s-page heading="Widgets" inlineSize="large">
       <div className={styles.widgetsLayout}>
         <main className={styles.widgetsMain}>
+          <s-section heading="Review section widget">
+            <div className={styles.storiesIntro}>
+              <div>
+                <p className={styles.eyebrow}>Storefront customer feedback</p>
+                <h2>Review section</h2>
+                <p>
+                  Present ratings, verified customer feedback, and review media
+                  in a polished product-page experience.
+                </p>
+              </div>
+              <s-badge tone="success">Available</s-badge>
+            </div>
+
+            <div className={styles.previewToolbar}>
+              <span>Preview</span>
+              <div className={styles.deviceButtons}>
+                <button
+                  aria-label="Desktop preview"
+                  aria-pressed={reviewPreviewDevice === "desktop"}
+                  className={reviewPreviewDevice === "desktop" ? styles.activeDevice : ""}
+                  onClick={() => setReviewPreviewDevice("desktop")}
+                  type="button"
+                >
+                  <span aria-hidden="true" className={styles.desktopIcon} />
+                  Desktop
+                </button>
+                <button
+                  aria-label="Mobile preview"
+                  aria-pressed={reviewPreviewDevice === "mobile"}
+                  className={reviewPreviewDevice === "mobile" ? styles.activeDevice : ""}
+                  onClick={() => setReviewPreviewDevice("mobile")}
+                  type="button"
+                >
+                  <span aria-hidden="true" className={styles.mobileIcon} />
+                  Mobile
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.previewStage}>
+              <div className={`${styles.reviewWidgetPreview} ${
+                reviewPreviewDevice === "mobile" ? styles.reviewWidgetPreviewMobile : ""
+              }`}>
+                <div className={styles.reviewPreviewHeading}>
+                  <div>
+                    <span>Customer feedback</span>
+                    <h3>Customer reviews</h3>
+                  </div>
+                </div>
+                <div className={styles.reviewPreviewSummary}>
+                  <div><strong>4.82</strong><span>★★★★★</span><small>84 reviews</small></div>
+                  <div>
+                    {[86, 62, 34, 18, 8].map((width, index) => (
+                      <span key={width}><b>{5 - index}</b><i><em style={{ width: `${width}%` }} /></i></span>
+                    ))}
+                  </div>
+                  <button type="button">Write a review</button>
+                </div>
+                <div className={styles.reviewPreviewFilters}>
+                  <span>⌕ Search reviews</span>
+                  <span>Sort: Newest⌄</span>
+                  <span>All ratings⌄</span>
+                  <small><b>84</b> reviews shown · ✓ Verified feedback</small>
+                </div>
+                <div className={`${styles.reviewLayoutPreview} ${
+                  reviewSection.cardLayout === "layout-2" ? styles.reviewLayoutTwo : ""
+                } ${
+                  reviewSection.cardLayout === "layout-3" ? styles.reviewLayoutThree : ""
+                } ${
+                  reviewSection.cardLayout === "layout-4" ? styles.reviewLayoutFour : ""
+                } ${
+                  reviewSection.cardLayout === "layout-5" ? styles.reviewLayoutFive : ""
+                } ${
+                  reviewSection.cardLayout === "layout-6" ? styles.reviewLayoutSix : ""
+                } ${
+                  reviewSection.cardLayout === "layout-7" ? styles.reviewLayoutSeven : ""
+                }`}
+                style={{
+                  "--review-preview-duration": `${Math.round(
+                    reviewSection.infiniteSpeed * 3,
+                  )}s`,
+                }}
+                >
+                  <article>
+                    <div>
+                      <span className={styles.reviewPreviewAvatar}>AW</span>
+                      <strong>Amelia Wilson</strong>
+                      <em>Verified buyer</em>
+                    </div>
+                    <span className={styles.reviewPreviewStars}>★★★★★</span>
+                    <h4>Beautiful quality</h4>
+                    <p>Beautiful quality, thoughtful packaging, and exactly as described.</p>
+                    <footer><small>Jul 26, 2026</small><span>♥ Would recommend</span></footer>
+                  </article>
+                  <article>
+                    <div>
+                      <span className={styles.reviewPreviewAvatar}>JM</span>
+                      <strong>James Miller</strong>
+                      <em>Verified buyer</em>
+                    </div>
+                    <span className={styles.reviewPreviewStars}>★★★★★</span>
+                    <h4>Excellent experience</h4>
+                    <p>Fast delivery and a genuinely premium customer experience.</p>
+                    <footer><small>Jul 24, 2026</small><span>♥ Would recommend</span></footer>
+                  </article>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.optionGrid}>
+              <label className={styles.optionCard}>
+                <span>Layout</span>
+                <h3>Review card style</h3>
+                <select
+                  value={reviewSection.cardLayout}
+                  onChange={(event) => {
+                    setReviewSection((current) => ({
+                      ...current,
+                      cardLayout: event.target.value,
+                    }));
+                    setReviewSectionDirty(true);
+                  }}
+                >
+                  <option value="layout-1">Layout 1 · Premium cards</option>
+                  <option value="layout-2">Layout 2 · Compact list</option>
+                  <option value="layout-3">Layout 3 · Minimal editorial</option>
+                  <option value="layout-4">Layout 4 · Soft testimonial</option>
+                  <option value="layout-5">Layout 5 · Review carousel</option>
+                  <option value="layout-6">Layout 6 · Bento carousel</option>
+                  <option value="layout-7">Layout 7 · Infinite carousel</option>
+                </select>
+                <p>Choose how individual reviews appear on product pages.</p>
+              </label>
+              {reviewSection.cardLayout === "layout-5" ? (
+                <>
+                  <label className={`${styles.optionCard} ${styles.toggleCard}`}>
+                    <span>Carousel</span>
+                    <h3>Autoplay</h3>
+                    <div className={styles.checkboxRow}>
+                      <input
+                        checked={reviewSection.carouselAutoplay}
+                        type="checkbox"
+                        onChange={(event) => {
+                          setReviewSection((current) => ({
+                            ...current,
+                            carouselAutoplay: event.target.checked,
+                          }));
+                          setReviewSectionDirty(true);
+                        }}
+                      />
+                      <p>Automatically advance review cards</p>
+                    </div>
+                  </label>
+                  <label className={styles.optionCard}>
+                    <span>Carousel</span>
+                    <h3>Autoplay speed</h3>
+                    <input
+                      disabled={!reviewSection.carouselAutoplay}
+                      min="3"
+                      max="12"
+                      type="range"
+                      value={reviewSection.carouselSpeed}
+                      onChange={(event) => {
+                        setReviewSection((current) => ({
+                          ...current,
+                          carouselSpeed: Number(event.target.value),
+                        }));
+                        setReviewSectionDirty(true);
+                      }}
+                    />
+                    <p>{reviewSection.carouselSpeed} seconds between slides</p>
+                  </label>
+                </>
+              ) : null}
+              {reviewSection.cardLayout === "layout-7" ? (
+                <label className={styles.optionCard}>
+                  <span>Playback</span>
+                  <h3>Autoplay speed</h3>
+                  <input
+                    min="3"
+                    max="12"
+                    step="1"
+                    type="range"
+                    value={reviewSection.infiniteSpeed}
+                    onChange={(event) => {
+                      setReviewSection((current) => ({
+                        ...current,
+                        infiniteSpeed: Number(event.target.value),
+                      }));
+                      setReviewSectionDirty(true);
+                    }}
+                  />
+                  <p>{reviewSection.infiniteSpeed} seconds per review</p>
+                </label>
+              ) : null}
+            </div>
+
+            <div className={styles.saveBar}>
+              <div>
+                <strong>Review section settings</strong>
+                <p>
+                  {reviewSectionDirty
+                    ? "You have unsaved changes."
+                    : reviewSectionFetcher.data?.ok
+                      ? "Saved successfully. Storefront settings are updated."
+                      : "Settings are saved."}
+                </p>
+              </div>
+              <s-button
+                disabled={!reviewSectionDirty || reviewSectionFetcher.state !== "idle"}
+                loading={reviewSectionFetcher.state !== "idle"}
+                onClick={() => reviewSectionFetcher.submit(
+                  {
+                    intent: "save-review-section-settings",
+                    settings: JSON.stringify(reviewSection),
+                  },
+                  { method: "post" },
+                )}
+                variant="primary"
+              >
+                Save settings
+              </s-button>
+            </div>
+          </s-section>
+
           <s-section heading="Star badge widget">
         <div className={styles.hero}>
           <p className={styles.eyebrow}>Product page block</p>

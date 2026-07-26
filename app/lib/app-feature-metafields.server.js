@@ -7,6 +7,14 @@ const REVIEW_VIBE_KEY = "review_vibe_available";
 const VIDEO_REVIEWS_KEY = "video_reviews_available";
 const VIDEO_REVIEWS_SETTINGS_KEY = "video_reviews_settings";
 const REVIEW_REWARD_SETTINGS_KEY = "review_reward_settings";
+const REVIEW_SECTION_SETTINGS_KEY = "review_section_settings";
+
+export const DEFAULT_REVIEW_SECTION_SETTINGS = {
+  cardLayout: "layout-1",
+  carouselAutoplay: true,
+  carouselSpeed: 5,
+  infiniteSpeed: 5,
+};
 
 export const DEFAULT_REVIEW_REWARD_SETTINGS = {
   accentColor: "#18B487",
@@ -17,7 +25,7 @@ export const DEFAULT_REVIEW_REWARD_SETTINGS = {
   discountValue: 20,
   enabled: false,
   generateUniqueCode: true,
-  heading: "Congratulations, you got 20% off",
+  heading: "Congratulations, you got [[percentage]] off",
   imageUrl: "",
   message: "Thank you for sharing your experience! Enjoy a discount on your next purchase.",
   redirectPath: "/collections/all",
@@ -94,6 +102,24 @@ export const getStarBadgeSettings = (admin) =>
 export const saveStarBadgeSettings = (admin, settings) =>
   saveJsonSetting(admin, STAR_BADGE_SETTINGS_KEY, settings);
 
+export const getReviewSectionSettings = async (admin) => {
+  const settings = await getJsonSetting(
+    admin,
+    REVIEW_SECTION_SETTINGS_KEY,
+    DEFAULT_REVIEW_SECTION_SETTINGS,
+  );
+  return {
+    ...settings,
+    infiniteSpeed: Math.max(
+      3,
+      Math.min(12, Number(settings.infiniteSpeed) || 5),
+    ),
+  };
+};
+
+export const saveReviewSectionSettings = (admin, settings) =>
+  saveJsonSetting(admin, REVIEW_SECTION_SETTINGS_KEY, settings);
+
 export const getReviewRewardSettings = async (admin) => {
   const settings = await getJsonSetting(
     admin,
@@ -112,7 +138,8 @@ export const getReviewRewardSettings = async (admin) => {
       Math.min(100, Number(settings.discountValue) || 20),
     ),
     heading:
-      settings.heading === "Congratulations, you got 25% off"
+      settings.heading === "Congratulations, you got 25% off" ||
+      settings.heading === "Congratulations, you got 20% off"
         ? DEFAULT_REVIEW_REWARD_SETTINGS.heading
         : settings.heading,
   };

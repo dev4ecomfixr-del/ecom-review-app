@@ -14,6 +14,12 @@ import {
 } from "../lib/review-reward-discounts.server";
 import styles from "../styles/review-reward.module.css";
 
+const renderRewardHeading = (heading, discountValue) =>
+  String(heading || "Thank you for your review").replaceAll(
+    "[[percentage]]",
+    `${discountValue}%`,
+  );
+
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
   await cleanupExpiredReviewCoupons(admin, session.shop);
@@ -203,8 +209,12 @@ export default function ReviewReward() {
                 <input
                   maxLength="100"
                   onChange={(event) => update("heading", event.target.value)}
+                  placeholder="Congratulations, you got [[percentage]] off"
                   value={settings.heading}
                 />
+                <small>
+                  Use <code>[[percentage]]</code> to insert the current discount, including %.
+                </small>
               </label>
               <label className={styles.controlCard}>
                 <span>Discount</span>
@@ -403,7 +413,7 @@ export default function ReviewReward() {
                   <div className={styles.imageFallback}>THANK YOU</div>
                 )}
                 <div className={styles.previewContent}>
-                  <h3>{settings.heading || "Thank you for your review"}</h3>
+                  <h3>{renderRewardHeading(settings.heading, settings.discountValue)}</h3>
                   <p>{settings.message}</p>
                   <span>Your coupon code</span>
                   <button style={{ background: settings.accentColor }} type="button">

@@ -1,29 +1,80 @@
 {{ 'review-section.css' | asset_url | stylesheet_tag }}
 
 {% assign reward_settings = app.metafields.ecom_reviewer.review_reward_settings.value %}
+{% assign review_section_settings = app.metafields.ecom_reviewer.review_section_settings.value %}
+{% assign review_card_layout = review_section_settings.cardLayout | default: 'layout-1' %}
 
 <div
-  class="ecom-reviewer"
+  class="ecom-reviewer ecom-reviewer--align-{{ block.settings.heading_alignment }} ecom-reviewer--{{ review_card_layout }}"
   data-review-widget
   data-shop="{{ shop.permanent_domain | escape }}"
   data-product-id="{% if product %}{{ product.id }}{% endif %}"
   data-product-handle="{% if product %}{{ product.handle | escape }}{% endif %}"
   data-product-title="{% if product %}{{ product.title | escape }}{% endif %}"
   data-proxy-path="{{ block.settings.proxy_path | escape }}"
+  data-review-carousel-autoplay="{{ review_section_settings.carouselAutoplay }}"
+  data-review-carousel-speed="{{ review_section_settings.carouselSpeed | default: 5 }}"
+  data-review-infinite-speed="{{ review_section_settings.infiniteSpeed | default: 5 }}"
+  style="
+    --ecom-reviewer-width: {{ block.settings.container_width }}px;
+    --ecom-reviewer-padding: {{ block.settings.section_padding }}px;
+    --ecom-reviewer-mobile-padding: {{ block.settings.mobile_padding }}px;
+    --ecom-reviewer-background: {{ block.settings.background_color }};
+    --ecom-reviewer-accent: {{ block.settings.accent_color }};
+    --ecom-reviewer-heading-color: {{ block.settings.heading_color }};
+    --ecom-reviewer-body-color: {{ block.settings.body_color }};
+    --ecom-reviewer-muted-color: {{ block.settings.muted_color }};
+    --ecom-reviewer-label-color: {{ block.settings.label_color }};
+    --ecom-reviewer-review-title-color: {{ block.settings.review_title_color }};
+    --ecom-reviewer-star-color: {{ block.settings.star_color }};
+    --ecom-reviewer-input-star-color: {{ block.settings.input_star_color }};
+    --ecom-reviewer-button-text-color: {{ block.settings.button_text_color }};
+    --ecom-reviewer-submit-text-color: {{ block.settings.submit_text_color }};
+  "
 >
   <div class="ecom-reviewer__header">
     <h2>{{ block.settings.heading | escape }}</h2>
-    <p>{{ block.settings.subheading | escape }}</p>
-    {% if product %}
+    {% if block.settings.show_subheading and block.settings.subheading != blank %}
+      <p>{{ block.settings.subheading | escape }}</p>
+    {% endif %}
+    {% if product and block.settings.show_product_context %}
       <div class="ecom-reviewer__product-title">
-        <span>Reviewing</span>
+        <span>Reviews for</span>
         <strong>{{ product.title | escape }}</strong>
       </div>
     {% endif %}
   </div>
 
+  <div class="ecom-reviewer__summary" data-review-summary>
+    <div class="ecom-reviewer__score">
+      <strong data-review-average>0.00</strong>
+      <span aria-hidden="true">★★★★★</span>
+      <small><b data-review-count>0</b> reviews</small>
+    </div>
+    <div class="ecom-reviewer__distribution" aria-label="Rating distribution">
+      {% for rating in (1..5) reversed %}
+        <div>
+          <span>{{ rating }}</span>
+          <i><b data-review-rating-bar="{{ rating }}"></b></i>
+        </div>
+      {% endfor %}
+    </div>
+    <button class="ecom-reviewer__write-toggle" data-review-form-toggle type="button">
+      {{ block.settings.write_button_label | escape }}
+    </button>
+  </div>
+
+  <div class="ecom-reviewer__form-panel" data-review-form-panel hidden>
+  <div class="ecom-reviewer__form-heading">
+    <div>
+      <span>Share your experience</span>
+      <h3>Write a product review</h3>
+      <p>Your feedback helps other customers make confident decisions.</p>
+    </div>
+    <span class="ecom-reviewer__required-note"><b>*</b> Required fields</span>
+  </div>
   <form class="ecom-reviewer__form" data-review-form>
-    <fieldset class="ecom-reviewer__rating">
+    <fieldset class="ecom-reviewer__rating" aria-label="How would you rate this product?">
       <legend>Your rating</legend>
       <div class="ecom-reviewer__stars-input">
         <input id="ecom-reviewer-star-5-{{ block.id }}" type="radio" name="rating" value="5" required>
@@ -36,6 +87,32 @@
         <label for="ecom-reviewer-star-2-{{ block.id }}">★</label>
         <input id="ecom-reviewer-star-1-{{ block.id }}" type="radio" name="rating" value="1">
         <label for="ecom-reviewer-star-1-{{ block.id }}">★</label>
+      </div>
+    </fieldset>
+
+    <fieldset class="ecom-reviewer__highlights">
+      <legend>What stood out?</legend>
+      <div>
+        <label>
+          <input type="checkbox" name="highlights" value="Fast delivery">
+          <span>Fast delivery</span>
+        </label>
+        <label>
+          <input type="checkbox" name="highlights" value="Great quality">
+          <span>Great quality</span>
+        </label>
+        <label>
+          <input type="checkbox" name="highlights" value="As described">
+          <span>As described</span>
+        </label>
+        <label>
+          <input type="checkbox" name="highlights" value="Good value">
+          <span>Good value</span>
+        </label>
+        <label>
+          <input type="checkbox" name="highlights" value="Great packaging">
+          <span>Great packaging</span>
+        </label>
       </div>
     </fieldset>
 
@@ -79,8 +156,48 @@
     </div>
     <p class="ecom-reviewer__message" data-review-message role="status"></p>
   </form>
+  </div>
 
-  <div class="ecom-reviewer__list" data-review-list></div>
+  <div class="ecom-reviewer__toolbar" aria-label="Review controls">
+    <label class="ecom-reviewer__search">
+      <input data-review-search type="search" placeholder="Search">
+    </label>
+    <label>
+      <select aria-label="Sort reviews" data-review-sort>
+        <option value="newest">Sort: Newest</option>
+        <option value="oldest">Sort: Oldest</option>
+        <option value="highest">Sort: Highest rating</option>
+        <option value="lowest">Sort: Lowest rating</option>
+      </select>
+    </label>
+    <label>
+      <select aria-label="Filter by rating" data-review-rating-filter>
+        <option value="all">Rating</option>
+        <option value="5">5 stars</option>
+        <option value="4">4 stars</option>
+        <option value="3">3 stars</option>
+        <option value="2">2 stars</option>
+        <option value="1">1 star</option>
+      </select>
+    </label>
+    <div class="ecom-reviewer__toolbar-meta">
+      <span><b data-review-results-count>0</b> reviews shown</span>
+      <span class="ecom-reviewer__verified-note"><i>✓</i> Verified customer feedback</span>
+    </div>
+  </div>
+  <div class="ecom-reviewer__carousel-viewport">
+    <div class="ecom-reviewer__list" data-review-list></div>
+  </div>
+  <div class="ecom-reviewer__carousel-controls" aria-label="Review carousel controls">
+    <button aria-label="Previous reviews" data-review-carousel-prev type="button">←</button>
+    <span>Browse reviews</span>
+    <button aria-label="Next reviews" data-review-carousel-next type="button">→</button>
+  </div>
+  <nav class="ecom-reviewer__pagination" aria-label="Review pages" data-review-pagination hidden>
+    <button aria-label="Previous review page" data-review-page-prev type="button">←</button>
+    <div class="ecom-reviewer__pagination-pages" data-review-pagination-pages></div>
+    <button aria-label="Next review page" data-review-page-next type="button">→</button>
+  </nav>
 
   {% if reward_settings.enabled %}
     <div
@@ -116,9 +233,14 @@
         {% else %}
           <div class="ecom-reviewer-reward__image-fallback">THANK YOU</div>
         {% endif %}
+        {% assign reward_percentage = reward_settings.discountValue | default: 20 | append: '%' %}
+        {% assign reward_heading = reward_settings.heading
+          | default: 'Congratulations, you got [[percentage]] off'
+          | replace: '[[percentage]]', reward_percentage
+        %}
         <div class="ecom-reviewer-reward__content">
           <h2 id="ecom-reviewer-reward-title-{{ block.id }}">
-            {{ reward_settings.heading | default: 'Congratulations, you got a discount' | escape }}
+            {{ reward_heading | escape }}
           </h2>
           <p>{{ reward_settings.message | escape }}</p>
           {% if reward_settings.discountCode != blank %}<span>Your coupon code · Click to copy</span>{% endif %}
@@ -147,7 +269,7 @@
       "type": "text",
       "id": "heading",
       "label": "Heading",
-      "default": "Write a Review"
+      "default": "Customer reviews"
     },
     {
       "type": "text",
@@ -156,10 +278,142 @@
       "default": "Share your experience with our community. Your feedback helps us maintain the LUXE standard."
     },
     {
+      "type": "checkbox",
+      "id": "show_subheading",
+      "label": "Show subheading",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_product_context",
+      "label": "Show product name",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "write_button_label",
+      "label": "Write review button label",
+      "default": "Write a review"
+    },
+    {
       "type": "text",
       "id": "button_label",
       "label": "Button label",
       "default": "Submit review"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "container_width",
+      "label": "Container width",
+      "min": 600,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "section_padding",
+      "label": "Desktop spacing",
+      "min": 16,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding",
+      "label": "Mobile spacing",
+      "min": 12,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment",
+      "label": "Heading alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background",
+      "default": "#f7f7f7"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent",
+      "default": "#a8ef00"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading text",
+      "default": "#111111"
+    },
+    {
+      "type": "color",
+      "id": "body_color",
+      "label": "Body text",
+      "default": "#374151"
+    },
+    {
+      "type": "color",
+      "id": "muted_color",
+      "label": "Muted text",
+      "default": "#657169"
+    },
+    {
+      "type": "color",
+      "id": "label_color",
+      "label": "Form labels",
+      "default": "#435149"
+    },
+    {
+      "type": "color",
+      "id": "review_title_color",
+      "label": "Review titles",
+      "default": "#17231d"
+    },
+    {
+      "type": "color",
+      "id": "star_color",
+      "label": "Review display stars",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "input_star_color",
+      "label": "Form rating stars",
+      "default": "#c27a00"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Write button text",
+      "default": "#101010"
+    },
+    {
+      "type": "color",
+      "id": "submit_text_color",
+      "label": "Submit button text",
+      "default": "#ffffff"
     },
     {
       "type": "text",
