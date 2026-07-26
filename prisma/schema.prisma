@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  shop          String
+  productId     String?
+  productHandle String?
+  productTitle  String?
+  customerName  String
+  customerEmail String?
+  rating        Int
+  title         String?
+  body          String
+  merchantReply String?
+  repliedAt     DateTime?
+  status        String   @default("PUBLISHED")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  photos        ReviewPhoto[]
+
+  @@index([shop])
+  @@index([shop, productId])
+  @@index([shop, productHandle])
+  @@index([shop, status])
+}
+
+model ReviewPhoto {
+  id            String   @id @default(cuid())
+  reviewId      String
+  shop          String
+  shopifyFileId String?
+  url           String?
+  alt           String?
+  mediaType     String   @default("IMAGE")
+  createdAt     DateTime @default(now())
+  review        Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@index([shop])
+}
+
+model ShopPlan {
+  shop      String   @id
+  plan      String   @default("STARTER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FilterWord {
+  id        String   @id @default(cuid())
+  shop      String
+  word      String
+  createdAt DateTime @default(now())
+
+  @@unique([shop, word])
+  @@index([shop])
+}
+
+model EmailNotificationSetting {
+  shop      String   @id
+  enabled   Boolean  @default(false)
+  subject   String   @default("How was your recent order?")
+  body      String   @default("Hi {{customer_name}},\n\nThank you for your order {{order_name}}. We would love to hear what you think about your purchase.\n\nShare your feedback here: {{review_link}}")
+  delayDays Int      @default(2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PendingEmailNotification {
+  id            String    @id @default(cuid())
+  shop          String
+  orderId       String
+  orderName     String?
+  customerEmail String
+  customerName  String?
+  subject       String
+  body          String
+  sendAt        DateTime
+  status        String    @default("QUEUED")
+  error         String?
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([shop, orderId])
+  @@index([shop])
+  @@index([status, sendAt])
+}
+
+model GeneratedCoupon {
+  id                String    @id @default(cuid())
+  shop              String
+  reviewId          String?
+  shopifyDiscountId String
+  code              String
+  percentage        Int
+  status            String    @default("ACTIVE")
+  expiresAt         DateTime
+  deletedAt         DateTime?
+  deletionError     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([shop, code])
+  @@unique([shop, shopifyDiscountId])
+  @@index([shop, status])
+  @@index([shop, expiresAt])
+}

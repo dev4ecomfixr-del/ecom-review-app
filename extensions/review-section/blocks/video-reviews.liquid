@@ -1,0 +1,117 @@
+{{ 'video-reviews.css' | asset_url | stylesheet_tag }}
+
+{% assign saved_settings = app.metafields.ecom_reviewer.video_reviews_settings.value %}
+{% assign video_heading = saved_settings.heading | default: block.settings.heading %}
+{% assign video_subheading = saved_settings.subheading | default: block.settings.subheading %}
+{% assign video_background = saved_settings.backgroundColor | default: block.settings.background_color %}
+{% assign video_card_background = saved_settings.cardBackground | default: block.settings.card_background %}
+{% assign video_star_color = saved_settings.starColor | default: block.settings.star_color %}
+{% assign video_text_color = saved_settings.textColor | default: block.settings.text_color %}
+{% assign video_radius = saved_settings.borderRadius | default: block.settings.border_radius %}
+{% assign video_desktop_cards = saved_settings.desktopCards | default: block.settings.desktop_cards %}
+{% assign video_mobile_cards = saved_settings.mobileCards | default: block.settings.mobile_cards %}
+{% assign video_layout = saved_settings.layoutStyle | default: block.settings.layout_style %}
+{% assign video_scroll_speed = saved_settings.scrollSpeed | default: block.settings.scroll_speed %}
+{% assign video_autoplay_speed = saved_settings.autoplaySpeed | default: block.settings.autoplay_speed %}
+{% assign video_autoplay = block.settings.autoplay %}
+{% unless saved_settings.autoplay == nil %}
+  {% assign video_autoplay = saved_settings.autoplay %}
+{% endunless %}
+
+<section
+  class="ecom-reviewer-stories ecom-reviewer-stories--{{ video_layout }}"
+  style="
+    --ers-bg: {{ video_background }};
+    --ers-card-bg: {{ video_card_background }};
+    --ers-text: {{ video_text_color }};
+    --ers-star: {{ video_star_color }};
+    --ers-radius: {{ video_radius }}px;
+    --ers-desktop-columns: {{ video_desktop_cards }};
+    --ers-mobile-columns: {{ video_mobile_cards }};
+  "
+  data-video-reviews
+  hidden
+  data-shop="{{ shop.permanent_domain | escape }}"
+  data-product-id="{% if product %}{{ product.id }}{% endif %}"
+  data-product-handle="{% if product %}{{ product.handle | escape }}{% endif %}"
+  data-proxy-path="{{ block.settings.proxy_path | escape }}"
+  data-empty-message="{{ block.settings.empty_message | escape }}"
+  data-desktop-cards="{{ video_desktop_cards }}"
+  data-mobile-cards="{{ video_mobile_cards }}"
+  data-autoplay="{{ video_autoplay }}"
+  data-autoplay-speed="{{ video_autoplay_speed }}"
+  data-layout="{{ video_layout }}"
+  data-scroll-speed="{{ video_scroll_speed }}"
+>
+  <header class="ecom-reviewer-stories__header">
+    <h2>{{ video_heading | escape }}</h2>
+    {% if video_subheading != blank %}
+      <p class="ecom-reviewer-stories__subheading">{{ video_subheading | escape }}</p>
+    {% endif %}
+    <p class="ecom-reviewer-stories__summary" data-video-reviews-summary><span aria-hidden="true">★★★★★</span> Loading reviews…</p>
+  </header>
+
+  <div class="ecom-reviewer-stories__viewport" data-video-reviews-viewport>
+    <div class="ecom-reviewer-stories__track" data-video-reviews-track></div>
+  </div>
+
+  <div class="ecom-reviewer-stories__nav" data-video-reviews-nav hidden>
+    <button type="button" data-video-reviews-prev aria-label="Previous video reviews">‹</button>
+    <button type="button" data-video-reviews-next aria-label="Next video reviews">›</button>
+  </div>
+</section>
+
+<script src="{{ 'video-reviews.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Video reviews",
+  "target": "section",
+  "available_if": "{{ app.metafields.ecom_reviewer.video_reviews_available }}",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Video reviews" },
+    { "type": "text", "id": "subheading", "label": "Subheading", "default": "Real stories from our customers" },
+    { "type": "textarea", "id": "empty_message", "label": "Empty message", "default": "No published reviews yet." },
+    { "type": "color", "id": "background_color", "label": "Section background", "default": "#E9FFF2" },
+    { "type": "color", "id": "card_background", "label": "Card background", "default": "#D9F7E5" },
+    { "type": "color", "id": "star_color", "label": "Star color", "default": "#0B6547" },
+    { "type": "color", "id": "text_color", "label": "Text color", "default": "#17231D" },
+    { "type": "range", "id": "border_radius", "label": "Corner radius", "min": 0, "max": 40, "step": 1, "default": 24 },
+    {
+      "type": "select",
+      "id": "layout_style",
+      "label": "Carousel layout",
+      "default": "layout-1",
+      "options": [
+        { "value": "layout-1", "label": "Layout 1 - Featured center" },
+        { "value": "layout-2", "label": "Layout 2 - Uniform cards" },
+        { "value": "layout-3", "label": "Layout 3 - Infinite carousel" }
+      ]
+    },
+    { "type": "range", "id": "desktop_cards", "label": "Cards on desktop", "min": 3, "max": 6, "step": 1, "default": 5 },
+    {
+      "type": "range",
+      "id": "scroll_speed",
+      "label": "Infinite scrolling speed",
+      "min": 10,
+      "max": 100,
+      "step": 10,
+      "default": 40,
+      "visible_if": "{{ block.settings.layout_style == 'layout-3' }}"
+    },
+    {
+      "type": "select",
+      "id": "mobile_cards",
+      "label": "Cards on mobile",
+      "default": "1",
+      "options": [
+        { "value": "1", "label": "1 card" },
+        { "value": "2", "label": "2 cards" }
+      ]
+    },
+    { "type": "checkbox", "id": "autoplay", "label": "Autoplay videos and slides", "default": true },
+    { "type": "range", "id": "autoplay_speed", "label": "Autoplay speed", "min": 3, "max": 12, "step": 1, "unit": "s", "default": 5 },
+    { "type": "text", "id": "proxy_path", "label": "App proxy path", "default": "/apps/reviews" }
+  ]
+}
+{% endschema %}

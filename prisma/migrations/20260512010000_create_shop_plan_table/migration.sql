@@ -1,0 +1,7 @@
+-- CreateTable
+CREATE TABLE "ShopPlan" (
+    "shop" TEXT NOT NULL PRIMARY KEY,
+    "plan" TEXT NOT NULL DEFAULT 'STARTER',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);

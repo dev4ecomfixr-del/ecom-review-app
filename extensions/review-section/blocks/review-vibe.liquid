@@ -1,0 +1,54 @@
+{{ 'review-vibe.css' | asset_url | stylesheet_tag }}
+
+<div
+  class="ecom-reviewer-vibe"
+  style="--erv-bg: {{ block.settings.background_color }}; --erv-border: {{ block.settings.border_color }}; --erv-star: {{ block.settings.star_color }}; --erv-text: {{ block.settings.text_color }}; --erv-accent: {{ block.settings.accent_color }}; --erv-radius: {{ block.settings.border_radius }}px;"
+  data-review-vibe hidden
+  data-shop="{{ shop.permanent_domain | escape }}"
+  data-product-id="{% if product %}{{ product.id }}{% endif %}"
+  data-product-handle="{% if product %}{{ product.handle | escape }}{% endif %}"
+  data-proxy-path="{{ block.settings.proxy_path | escape }}"
+  data-empty-message="{{ block.settings.empty_message | escape }}"
+  data-autoplay-speed="{{ block.settings.autoplay_speed }}"
+>
+  <div class="ecom-reviewer-vibe__top">
+    <div>
+      <h3>{{ block.settings.heading | escape }}</h3>
+      {% if block.settings.show_verified_badge %}<span class="ecom-reviewer-vibe__verified">{{ block.settings.verified_badge_label | escape }}</span>{% endif %}
+    </div>
+    <div class="ecom-reviewer-vibe__stars" data-review-vibe-stars aria-hidden="true">★★★★★</div>
+  </div>
+  <div class="ecom-reviewer-vibe__content">
+    <div class="ecom-reviewer-vibe__copy">
+      <p class="ecom-reviewer-vibe__body" data-review-vibe-body></p>
+      <strong class="ecom-reviewer-vibe__author" data-review-vibe-author></strong>
+    </div>
+    <div class="ecom-reviewer-vibe__media" data-review-vibe-media hidden>
+      <img data-review-vibe-image alt="" loading="lazy" width="800" height="600">
+      <video data-review-vibe-video controls playsinline preload="metadata" hidden></video>
+    </div>
+  </div>
+</div>
+<script src="{{ 'review-vibe.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Slideshow Review",
+  "target": "section",
+  "available_if": "{{ app.metafields.ecom_reviewer.review_vibe_available }}",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "গ্রাহকদের রিভিউ" },
+    { "type": "textarea", "id": "empty_message", "label": "Empty message", "default": "No published reviews yet." },
+    { "type": "checkbox", "id": "show_verified_badge", "label": "Show verified review badge", "default": true },
+    { "type": "text", "id": "verified_badge_label", "label": "Verified badge label", "default": "Verified review" },
+    { "type": "color", "id": "background_color", "label": "Background color", "default": "#11100C" },
+    { "type": "color", "id": "border_color", "label": "Border color", "default": "#7A5B1E" },
+    { "type": "color", "id": "star_color", "label": "Star color", "default": "#D7A33A" },
+    { "type": "color", "id": "text_color", "label": "Review text color", "default": "#F2EDEA" },
+    { "type": "color", "id": "accent_color", "label": "Author color", "default": "#D7A33A" },
+    { "type": "range", "id": "border_radius", "label": "Corner radius", "min": 0, "max": 24, "step": 1, "default": 8 },
+    { "type": "range", "id": "autoplay_speed", "label": "Slideshow speed", "min": 3, "max": 12, "step": 1, "unit": "s", "default": 5 },
+    { "type": "text", "id": "proxy_path", "label": "App proxy path", "default": "/apps/reviews" }
+  ]
+}
+{% endschema %}

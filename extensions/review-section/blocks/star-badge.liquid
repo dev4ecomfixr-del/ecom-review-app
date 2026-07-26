@@ -1,0 +1,145 @@
+{{ 'star-badge.css' | asset_url | stylesheet_tag }}
+
+{% assign saved_badge = app.metafields.ecom_reviewer.star_badge_settings.value %}
+{% assign badge_star_color = saved_badge.starColor | default: block.settings.star_color %}
+{% assign badge_text_color = saved_badge.textColor | default: block.settings.text_color %}
+{% assign badge_muted_color = saved_badge.mutedTextColor | default: block.settings.muted_text_color %}
+{% assign badge_font_size = saved_badge.fontSize | default: block.settings.font_size %}
+{% assign badge_star_size = saved_badge.starSize | default: block.settings.star_size %}
+{% assign badge_alignment = saved_badge.alignment | default: block.settings.alignment %}
+{% assign badge_style = saved_badge.badgeStyle | default: block.settings.badge_style %}
+{% assign badge_divider = block.settings.show_divider %}
+{% unless saved_badge.showDivider == nil %}
+  {% assign badge_divider = saved_badge.showDivider %}
+{% endunless %}
+
+<div
+  class="ecom-reviewer-badge ecom-reviewer-badge--{{ badge_style }}"
+  style="
+    --erb-star-color: {{ badge_star_color }};
+    --erb-text-color: {{ badge_text_color }};
+    --erb-muted-color: {{ badge_muted_color }};
+    --erb-font-size: {{ badge_font_size }}px;
+    --erb-star-size: {{ badge_star_size }}px;
+    --erb-alignment: {{ badge_alignment }};
+  "
+  data-review-badge
+  hidden
+  data-shop="{{ shop.permanent_domain | escape }}"
+  data-product-id="{% if product %}{{ product.id }}{% endif %}"
+  data-product-handle="{% if product %}{{ product.handle | escape }}{% endif %}"
+  data-proxy-path="{{ block.settings.proxy_path | escape }}"
+  data-empty-label="{{ block.settings.empty_label | escape }}"
+  data-badge-style="{{ badge_style }}"
+>
+  <div class="ecom-reviewer-badge__stars" aria-hidden="true">★★★★★</div>
+  <strong data-review-badge-rating data-shine-text="{{ block.settings.empty_label | escape }}">{{ block.settings.empty_label | escape }}</strong>
+  <span
+    data-review-badge-count
+    data-shine-text=""
+    {% unless badge_divider %}data-no-divider="true"{% endunless %}
+  ></span>
+</div>
+
+<script src="{{ 'star-badge.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Star badge",
+  "target": "section",
+  "available_if": "{{ app.metafields.ecom_reviewer.star_badge_available }}",
+  "settings": [
+    {
+      "type": "select",
+      "id": "badge_style",
+      "label": "Badge style",
+      "default": "style-1",
+      "options": [
+        { "value": "style-1", "label": "Style 1 - Horizontal" },
+        { "value": "style-2", "label": "Style 2 - Stacked" },
+        { "value": "style-3", "label": "Style 3 - Compact pill" },
+        { "value": "style-4", "label": "Style 4 - Minimal underline" },
+        { "value": "style-5", "label": "Style 5 - Review card" },
+        { "value": "style-6", "label": "Style 6 - Score spotlight" },
+        { "value": "style-7", "label": "Style 7 - Pulsing stars" },
+        { "value": "style-8", "label": "Style 8 - Shimmer sweep" },
+        { "value": "style-9", "label": "Style 9 - Floating glow" }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "empty_label",
+      "label": "Empty state label",
+      "default": "No reviews yet"
+    },
+    {
+      "type": "color",
+      "id": "star_color",
+      "label": "Star color",
+      "default": "#F5AA12"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Rating text color",
+      "default": "#1F2933"
+    },
+    {
+      "type": "color",
+      "id": "muted_text_color",
+      "label": "Customer text color",
+      "default": "#4B5563"
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Rating font size",
+      "min": 18,
+      "max": 56,
+      "step": 1,
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "star_size",
+      "label": "Star size",
+      "min": 18,
+      "max": 56,
+      "step": 1,
+      "default": 18
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Alignment",
+      "default": "flex-start",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "show_divider",
+      "label": "Show divider",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "proxy_path",
+      "label": "App proxy path",
+      "default": "/apps/reviews"
+    }
+  ]
+}
+{% endschema %}

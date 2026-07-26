@@ -1,0 +1,172 @@
+{{ 'review-section.css' | asset_url | stylesheet_tag }}
+
+{% assign reward_settings = app.metafields.ecom_reviewer.review_reward_settings.value %}
+
+<div
+  class="ecom-reviewer"
+  data-review-widget
+  data-shop="{{ shop.permanent_domain | escape }}"
+  data-product-id="{% if product %}{{ product.id }}{% endif %}"
+  data-product-handle="{% if product %}{{ product.handle | escape }}{% endif %}"
+  data-product-title="{% if product %}{{ product.title | escape }}{% endif %}"
+  data-proxy-path="{{ block.settings.proxy_path | escape }}"
+>
+  <div class="ecom-reviewer__header">
+    <h2>{{ block.settings.heading | escape }}</h2>
+    <p>{{ block.settings.subheading | escape }}</p>
+    {% if product %}
+      <div class="ecom-reviewer__product-title">
+        <span>Reviewing</span>
+        <strong>{{ product.title | escape }}</strong>
+      </div>
+    {% endif %}
+  </div>
+
+  <form class="ecom-reviewer__form" data-review-form>
+    <fieldset class="ecom-reviewer__rating">
+      <legend>Your rating</legend>
+      <div class="ecom-reviewer__stars-input">
+        <input id="ecom-reviewer-star-5-{{ block.id }}" type="radio" name="rating" value="5" required>
+        <label for="ecom-reviewer-star-5-{{ block.id }}">★</label>
+        <input id="ecom-reviewer-star-4-{{ block.id }}" type="radio" name="rating" value="4">
+        <label for="ecom-reviewer-star-4-{{ block.id }}">★</label>
+        <input id="ecom-reviewer-star-3-{{ block.id }}" type="radio" name="rating" value="3">
+        <label for="ecom-reviewer-star-3-{{ block.id }}">★</label>
+        <input id="ecom-reviewer-star-2-{{ block.id }}" type="radio" name="rating" value="2">
+        <label for="ecom-reviewer-star-2-{{ block.id }}">★</label>
+        <input id="ecom-reviewer-star-1-{{ block.id }}" type="radio" name="rating" value="1">
+        <label for="ecom-reviewer-star-1-{{ block.id }}">★</label>
+      </div>
+    </fieldset>
+
+    <label>
+      Full name
+      <input name="customerName" autocomplete="name" placeholder="John Doe" required>
+    </label>
+
+    <label>
+      Review title
+      <input name="title" maxlength="120" placeholder="Incredible quality and fit">
+    </label>
+
+    <label>
+      Your review
+      <textarea name="body" rows="6" maxlength="1000" placeholder="Tell us what you liked or disliked..." required></textarea>
+    </label>
+
+    <div class="ecom-reviewer__photos">
+      <span>Add photos or videos</span>
+      <div class="ecom-reviewer__photo-grid">
+        <div class="ecom-reviewer__photo-sample ecom-reviewer__photo-sample--product" aria-hidden="true"></div>
+        <div class="ecom-reviewer__photo-sample ecom-reviewer__photo-sample--texture" aria-hidden="true"></div>
+        <label class="ecom-reviewer__upload" data-review-upload>
+          <input name="photos" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm" multiple data-review-photo-input>
+          <span aria-hidden="true">+</span>
+          <strong>Upload media</strong>
+          <em>JPG, PNG, WebP, MP4, MOV</em>
+        </label>
+      </div>
+      <div class="ecom-reviewer__photo-preview" data-review-photo-preview></div>
+      <small data-review-photo-help>Max 5 files. JPG, PNG, WebP, MP4, MOV, or WebM only.</small>
+    </div>
+
+    <button type="submit">{{ block.settings.button_label | escape }}</button>
+    <div class="ecom-reviewer__progress" data-review-progress hidden>
+      <div class="ecom-reviewer__progress-track" role="progressbar" aria-label="Review upload progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-review-progress-track>
+        <span data-review-progress-bar></span>
+      </div>
+      <small data-review-progress-label>Preparing upload…</small>
+    </div>
+    <p class="ecom-reviewer__message" data-review-message role="status"></p>
+  </form>
+
+  <div class="ecom-reviewer__list" data-review-list></div>
+
+  {% if reward_settings.enabled %}
+    <div
+      class="ecom-reviewer-reward"
+      data-review-reward
+      data-discount-code="{{ reward_settings.discountCode | escape }}"
+      data-redirect-path="{{ reward_settings.redirectPath | default: '/collections/all' | escape }}"
+      hidden
+      style="--ecom-reward-accent: {{ reward_settings.accentColor | default: '#18B487' }};"
+    >
+      <div class="ecom-reviewer-reward__backdrop" data-review-reward-close></div>
+      <div
+        aria-labelledby="ecom-reviewer-reward-title-{{ block.id }}"
+        aria-modal="true"
+        class="ecom-reviewer-reward__dialog"
+        role="dialog"
+      >
+        <button
+          aria-label="Close reward popup"
+          class="ecom-reviewer-reward__close"
+          data-review-reward-close
+          type="button"
+        >×</button>
+        {% if reward_settings.imageUrl != blank %}
+          <img
+            alt=""
+            class="ecom-reviewer-reward__image"
+            src="{{ reward_settings.imageUrl | escape }}"
+            loading="eager"
+            width="800"
+            height="400"
+          >
+        {% else %}
+          <div class="ecom-reviewer-reward__image-fallback">THANK YOU</div>
+        {% endif %}
+        <div class="ecom-reviewer-reward__content">
+          <h2 id="ecom-reviewer-reward-title-{{ block.id }}">
+            {{ reward_settings.heading | default: 'Congratulations, you got a discount' | escape }}
+          </h2>
+          <p>{{ reward_settings.message | escape }}</p>
+          {% if reward_settings.discountCode != blank %}<span>Your coupon code · Click to copy</span>{% endif %}
+          <button
+            aria-label="Copy coupon code {{ reward_settings.discountCode | escape }}"
+            class="ecom-reviewer-reward__apply"
+            data-review-reward-copy
+            type="button"
+          >
+            {{ reward_settings.discountCode | default: 'Continue shopping' | escape }}
+          </button>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<script src="{{ 'review-section.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Review section",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Write a Review"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Share your experience with our community. Your feedback helps us maintain the LUXE standard."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label",
+      "default": "Submit review"
+    },
+    {
+      "type": "text",
+      "id": "proxy_path",
+      "label": "App proxy path",
+      "default": "/apps/reviews"
+    }
+  ]
+}
+{% endschema %}

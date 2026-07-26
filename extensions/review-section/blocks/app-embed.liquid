@@ -1,0 +1,15 @@
+<div
+  data-ecom-reviewer-app-embed
+  data-shop="{{ shop.permanent_domain | escape }}"
+  hidden
+></div>
+
+<script src="{{ 'app-embed.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "eCom Reviewer",
+  "target": "body",
+  "settings": []
+}
+{% endschema %}
