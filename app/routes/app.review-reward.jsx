@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useFetcher, useLoaderData } from "react-router";
+import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import db from "../db.server";
 import { authenticate } from "../shopify.server";
@@ -66,10 +67,50 @@ export const action = async ({ request }) => {
       };
     }
   }
+  if (formData.get("intent") === "resolveBannerImage") {
+    const fileId = String(formData.get("fileId") || "");
+    if (!/^gid:\/\/shopify\/MediaImage\/\d+$/.test(fileId)) {
+      return { error: "Select a valid image from Shopify Files.", ok: false };
+    }
+
+    const response = await admin.graphql(
+      `#graphql
+      query ReviewRewardBannerImage($id: ID!) {
+        node(id: $id) {
+          ... on MediaImage {
+            id
+            alt
+            image {
+              url
+            }
+          }
+        }
+      }`,
+      { variables: { id: fileId } },
+    );
+    const json = await response.json();
+    const image = json.data?.node;
+    if (!image?.id || !image.image?.url) {
+      return {
+        error: "The selected Shopify image is not available.",
+        ok: false,
+      };
+    }
+    return {
+      image: {
+        alt: image.alt || "Review reward banner",
+        id: image.id,
+        url: image.image.url,
+      },
+      ok: true,
+    };
+  }
+
   const raw = JSON.parse(String(formData.get("settings") || "{}"));
   const color = String(raw.accentColor || DEFAULT_REVIEW_REWARD_SETTINGS.accentColor);
   const redirectPath = String(raw.redirectPath || "/collections/all").trim();
   const imageUrl = String(raw.imageUrl || "").trim();
+  const imageId = String(raw.imageId || "").trim();
   const settings = {
     ...DEFAULT_REVIEW_REWARD_SETTINGS,
     accentColor: /^#[0-9a-f]{6}$/i.test(color) ? color : "#18B487",
@@ -87,6 +128,7 @@ export const action = async ({ request }) => {
     enabled: Boolean(raw.enabled),
     generateUniqueCode: Boolean(raw.generateUniqueCode),
     heading: String(raw.heading || DEFAULT_REVIEW_REWARD_SETTINGS.heading).trim().slice(0, 100),
+    imageId: /^gid:\/\/shopify\/MediaImage\/\d+$/.test(imageId) ? imageId : "",
     imageUrl: /^https?:\/\//i.test(imageUrl) ? imageUrl.slice(0, 1000) : "",
     message: String(raw.message || DEFAULT_REVIEW_REWARD_SETTINGS.message).trim().slice(0, 240),
     redirectPath: redirectPath.startsWith("/") ? redirectPath.slice(0, 300) : "/collections/all",
@@ -101,18 +143,72 @@ export default function ReviewReward() {
     settings: savedSettings,
     stats,
   } = useLoaderData();
+  const shopify = useAppBridge();
   const fetcher = useFetcher();
+  const imageFetcher = useFetcher();
   const deleteFetcher = useFetcher();
   const [settings, setSettings] = useState(savedSettings);
   const [dirty, setDirty] = useState(false);
+  const [imagePickerError, setImagePickerError] = useState("");
+  const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
   const update = (key, value) => {
     setSettings((current) => ({ ...current, [key]: value }));
     setDirty(true);
   };
 
   useEffect(() => {
-    if (fetcher.data?.ok) setDirty(false);
+    if (fetcher.data?.ok) {
+      setSettings(fetcher.data.settings);
+      setDirty(false);
+    }
   }, [fetcher.data]);
+
+  useEffect(() => {
+    if (!imageFetcher.data?.image) return;
+    setSettings((current) => ({
+      ...current,
+      imageId: imageFetcher.data.image.id,
+      imageUrl: imageFetcher.data.image.url,
+    }));
+    setDirty(true);
+  }, [imageFetcher.data]);
+
+  const removeBannerImage = () => {
+    setSettings((current) => ({ ...current, imageId: "", imageUrl: "" }));
+    setImagePickerError("");
+    setDirty(true);
+  };
+
+  const selectBannerImage = async () => {
+    setImagePickerError("");
+    setIsImagePickerOpen(true);
+    try {
+      const activity = await shopify.intents.invoke("pick:shopify/File", {
+        data: {
+          mediaTypes: ["MediaImage"],
+          multiSelect: false,
+          ...(settings.imageId ? { selectedFiles: [settings.imageId] } : {}),
+        },
+      });
+      const response = await activity.complete;
+      if (response.code === "error") {
+        setImagePickerError(response.message || "Could not open Shopify Files.");
+        return;
+      }
+      const fileId = response.code === "ok" ? response.data?.ids?.[0] : "";
+      if (!fileId) return;
+      imageFetcher.submit(
+        { fileId, intent: "resolveBannerImage" },
+        { method: "post" },
+      );
+    } catch (error) {
+      setImagePickerError(
+        error.message || "Could not open the Shopify file picker.",
+      );
+    } finally {
+      setIsImagePickerOpen(false);
+    }
+  };
 
   return (
     <s-page heading="Review reward" inlineSize="large">
@@ -241,17 +337,43 @@ export default function ReviewReward() {
                   value={settings.message}
                 />
               </label>
-              <label className={`${styles.controlCard} ${styles.wideControl}`}>
+              <div className={`${styles.controlCard} ${styles.wideControl}`}>
                 <span>Media</span>
-                <strong>Banner image URL</strong>
-                <input
-                  onChange={(event) => update("imageUrl", event.target.value)}
-                  placeholder="https://cdn.shopify.com/..."
-                  type="url"
-                  value={settings.imageUrl}
-                />
-                <small>Optional. Use a Shopify Files or CDN image URL.</small>
-              </label>
+                <strong>Banner image</strong>
+                <div className={styles.imagePickerRow}>
+                  <button
+                    className={styles.imagePickerButton}
+                    disabled={
+                      isImagePickerOpen || imageFetcher.state !== "idle"
+                    }
+                    onClick={selectBannerImage}
+                    type="button"
+                  >
+                    {isImagePickerOpen || imageFetcher.state !== "idle"
+                      ? "Opening Shopify Files…"
+                      : settings.imageUrl
+                        ? "Choose another image"
+                        : "Select from Shopify Files"}
+                  </button>
+                  {settings.imageUrl ? (
+                    <button
+                      className={styles.removeImageButton}
+                      onClick={removeBannerImage}
+                      type="button"
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+                <small>
+                  Choose an image already uploaded to your store.
+                </small>
+                {imagePickerError || imageFetcher.data?.error ? (
+                  <span className={styles.uploadError}>
+                    {imagePickerError || imageFetcher.data.error}
+                  </span>
+                ) : null}
+              </div>
               <label className={styles.controlCard}>
                 <span>Button</span>
                 <strong>Redirect after applying</strong>

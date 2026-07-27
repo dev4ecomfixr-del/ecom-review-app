@@ -308,19 +308,20 @@ export default function Dashboard() {
 
           <div className={styles.heroPanel}>
             <div>
-              <p className={styles.eyebrow}>Client trust suite</p>
-              <h2>Customer review experience</h2>
+              <p className={styles.eyebrow}>Customer Review Management</p>
+              <h2>Build Trust Through Authentic Reviews</h2>
               <p>
-                Showcase authentic customer feedback, build confidence before
-                checkout, and keep every review experience polished.
+                Showcase genuine customer feedback, strengthen buyer
+                confidence, and deliver a seamless review experience across
+                your storefront.
               </p>
               <div className={styles.heroMeta}>
-                <span>Storefront-ready reviews</span>
-                <span>Customer confidence tools</span>
+                <span>Storefront-Ready Reviews</span>
+                <span>Trust-Building Insights</span>
               </div>
             </div>
             <div className={styles.heroScore}>
-              <small>average rating</small>
+              <small>Average Customer Rating</small>
               <span>{averageRating}</span>
               <strong>★★★★★</strong>
             </div>

@@ -26,6 +26,7 @@ export const DEFAULT_REVIEW_REWARD_SETTINGS = {
   enabled: false,
   generateUniqueCode: true,
   heading: "Congratulations, you got [[percentage]] off",
+  imageId: "",
   imageUrl: "",
   message: "Thank you for sharing your experience! Enjoy a discount on your next purchase.",
   redirectPath: "/collections/all",

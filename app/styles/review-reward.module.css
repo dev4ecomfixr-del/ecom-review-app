@@ -159,6 +159,59 @@
   line-height: 1.4;
 }
 
+.imagePickerRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.imagePickerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid #0f7b5d;
+  border-radius: 8px;
+  background: #f2fbf7;
+  color: #0b684f;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.imagePickerButton:hover {
+  background: #e7f8f0;
+}
+
+.imagePickerButton:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+.removeImageButton {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #b91c1c;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.removeImageButton:hover {
+  background: #fff1f2;
+}
+
+.uploadError {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
 .inlineToggle {
   display: flex;
   align-items: center;
