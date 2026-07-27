@@ -164,6 +164,10 @@ export default function Dashboard() {
   const [sortOrder, setSortOrder] = useState("newest");
   const averageRating = stats.averageRating.toFixed(1);
   const latestReview = reviews[0];
+  const remainingReviews =
+    plan.reviewLimit === null
+      ? null
+      : Math.max(plan.reviewLimit - stats.totalReviews, 0);
   const publishedRate =
     stats.totalReviews > 0
       ? Math.round((stats.publishedReviews / stats.totalReviews) * 100)
@@ -663,6 +667,13 @@ export default function Dashboard() {
             {plan.suffix ? <small>{plan.suffix}</small> : null}
           </h3>
           <p>{planUsageLabel}</p>
+          <p className={styles.remainingReviews}>
+            {remainingReviews === null
+              ? "You have unlimited reviews available."
+              : `You have ${remainingReviews} ${
+                  remainingReviews === 1 ? "review" : "reviews"
+                } left.`}
+          </p>
           <ul>
             <li>
               {plan.reviewLimit === null

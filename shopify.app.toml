@@ -23,6 +23,14 @@ api_version = "2026-07"
   uri = "/webhooks/orders/create"
   topics = [ "orders/create" ]
 
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/compliance"
+  compliance_topics = [
+    "customers/data_request",
+    "customers/redact",
+    "shop/redact"
+  ]
+
 [auth]
 redirect_urls = [ "https://ecom-review-app.onrender.com/api/auth" ]
 

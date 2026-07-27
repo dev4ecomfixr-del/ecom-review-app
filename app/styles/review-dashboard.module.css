@@ -1256,6 +1256,16 @@
   line-height: 1.5;
 }
 
+.pricingCard .remainingReviews {
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 750;
+}
+
 .pricingCard ul {
   display: grid;
   gap: 7px;
