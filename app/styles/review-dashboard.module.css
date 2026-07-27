@@ -1207,7 +1207,7 @@
 
 .pricingCard {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   padding: 20px;
   overflow: hidden;
   border: 1px solid rgba(15, 123, 93, 0.16);
@@ -1217,6 +1217,13 @@
     linear-gradient(135deg, #10231d, #0f513f);
   color: white;
   box-shadow: 0 16px 32px rgba(15, 81, 63, 0.2);
+}
+
+.pricingCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .pricingBadge {
@@ -1251,8 +1258,8 @@
 
 .pricingCard ul {
   display: grid;
-  gap: 8px;
-  margin: 0;
+  gap: 7px;
+  margin: 2px 0 0;
   padding-left: 18px;
   color: rgba(255, 255, 255, 0.9);
 }
@@ -1262,14 +1269,39 @@
 }
 
 .activePlanStatus {
+  display: inline-flex;
   width: max-content;
-  padding: 7px 12px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
   border: 1px solid rgba(255, 255, 255, 0.34);
-  border-radius: 8px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
   color: #ffffff;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
+  white-space: nowrap;
+}
+
+.activePlanStatus span {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border-radius: 50%;
+  background: #a8ef00;
+  color: #10231d;
+}
+
+.activePlanStatus svg {
+  width: 10px;
+  height: 10px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
 }
 
 @media (max-width: 1350px) {

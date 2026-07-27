@@ -774,6 +774,15 @@
   background: #f7fbf8;
 }
 
+.themeBlockList {
+  display: grid;
+  gap: 12px;
+}
+
+.themeBlockList .statusCard {
+  box-shadow: none;
+}
+
 .upgradeNotice {
   display: grid;
   gap: 10px;
@@ -926,8 +935,8 @@
 .reviewPreviewSummary strong { color: #17231d; font-size: 32px; line-height: 1; }
 .reviewPreviewSummary > div:first-child > span { color: #d99b16; font-size: 14px; letter-spacing: 1px; }
 .reviewPreviewSummary small { color: #718078; font-size: 9px; }
-.reviewPreviewSummary > div:last-child { display: grid; gap: 5px; }
-.reviewPreviewSummary > div:last-child > span {
+.reviewPreviewSummary > div:nth-child(2) { display: grid; gap: 5px; }
+.reviewPreviewSummary > div:nth-child(2) > span {
   display: grid;
   grid-template-columns: 10px 1fr;
   gap: 7px;
@@ -937,23 +946,29 @@
 .reviewPreviewSummary i { height: 5px; overflow: hidden; border-radius: 999px; background: #e6ebe8; }
 .reviewPreviewSummary em { display: block; height: 100%; border-radius: inherit; background: #17231d; }
 .reviewPreviewFilters {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto auto;
   gap: 8px;
+  align-items: center;
   margin: 12px 0;
 }
 .reviewPreviewFilters span {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
   padding: 8px 10px;
   border: 1px solid #dce2df;
   border-radius: 6px;
   background: #ffffff;
   color: #66736c;
   font-size: 9px;
+  white-space: nowrap;
 }
-.reviewPreviewFilters span:first-child { flex: 1; }
+.reviewPreviewFilters span:first-child { min-width: 0; }
 .reviewPreviewFilters small {
   display: flex;
-  margin-left: auto;
   align-items: center;
+  gap: 3px;
   color: #718078;
   font-size: 8px;
   white-space: nowrap;
@@ -963,9 +978,16 @@
 .reviewWidgetPreviewMobile .reviewPreviewSummary { grid-template-columns: 90px 1fr; gap: 12px; padding: 13px; }
 .reviewWidgetPreviewMobile .reviewPreviewSummary > button { grid-column: 1 / -1; justify-self: stretch; }
 .reviewWidgetPreviewMobile .reviewPreviewSummary strong { font-size: 26px; }
-.reviewWidgetPreviewMobile .reviewPreviewFilters { flex-wrap: wrap; }
-.reviewWidgetPreviewMobile .reviewPreviewFilters span:first-child { flex-basis: 100%; }
-.reviewWidgetPreviewMobile .reviewPreviewFilters small { width: 100%; margin-left: 0; }
+.reviewWidgetPreviewMobile .reviewPreviewFilters {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.reviewWidgetPreviewMobile .reviewPreviewFilters span:first-child {
+  grid-column: 1 / -1;
+}
+.reviewWidgetPreviewMobile .reviewPreviewFilters small {
+  grid-column: 1 / -1;
+  width: 100%;
+}
 .reviewWidgetPreviewMobile .reviewLayoutPreview { padding: 10px; }
 .reviewWidgetPreviewMobile .reviewLayoutPreview article:nth-child(2) { display: none; }
 .reviewWidgetPreviewMobile .reviewLayoutSeven {

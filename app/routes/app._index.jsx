@@ -290,7 +290,7 @@ export default function Dashboard() {
     sortOrder !== "newest";
 
   return (
-    <s-page heading="Review dashboard" inlineSize="large">
+    <s-page heading="Dashboard" inlineSize="large">
       <s-button slot="primary-action" href="/app" variant="primary">
         Refresh
       </s-button>
@@ -646,7 +646,17 @@ export default function Dashboard() {
 
           <s-section heading="Pricing">
         <div className={styles.pricingCard}>
-          <div className={styles.pricingBadge}>{plan.name}</div>
+          <div className={styles.pricingCardHeader}>
+            <div className={styles.pricingBadge}>{plan.name}</div>
+            <div className={styles.activePlanStatus}>
+              <span aria-hidden="true">
+                <svg viewBox="0 0 16 16">
+                  <path d="m4.3 8.2 2.2 2.2 5.2-5.3" />
+                </svg>
+              </span>
+              Currently active
+            </div>
+          </div>
           <h3>
             {plan.price}
             {plan.suffix ? <small>{plan.suffix}</small> : null}
@@ -661,7 +671,6 @@ export default function Dashboard() {
             <li>Storefront review section</li>
             <li>Publish and hide controls</li>
           </ul>
-          <div className={styles.activePlanStatus}>Currently active</div>
         </div>
           </s-section>
         </aside>

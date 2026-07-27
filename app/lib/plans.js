@@ -16,7 +16,7 @@ export const PLANS = [
     features: [
       "Up to 10 reviews",
       "Storefront review section",
-      "Review dashboard",
+      "Dashboard",
       "Publish and hide reviews",
       "Post-review discount popup",
     ],

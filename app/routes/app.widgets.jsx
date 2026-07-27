@@ -877,7 +877,7 @@ export default function Widgets() {
           <s-section heading="App embed">
             <div className={styles.statusCard}>
               <span>Theme integration</span>
-              <h3>eCom Reviewer</h3>
+              <h3>ReviewLift</h3>
               <p>
                 Enable the app embed once in your live theme, then save the
                 Theme Editor.
@@ -892,18 +892,43 @@ export default function Widgets() {
           </s-section>
 
           <s-section heading="Theme editor">
-            <div className={styles.statusCard}>
-              <span>{canUseStarBadge ? "Available block" : "Growth feature"}</span>
-              <h3>Star badge</h3>
-              <p>
-                {canUseStarBadge
-                  ? "Add "
-                  : "Star badge is available from the Growth pack. Upgrade before adding "}
-                <code>Star badge</code>
-                {canUseStarBadge
-                  ? " from the product template app blocks. The settings appear directly in Shopify's theme editor."
-                  : " to your product template app blocks."}
-              </p>
+            <div className={styles.themeBlockList}>
+              <div className={styles.statusCard}>
+                <span>Available block</span>
+                <h3>Review section</h3>
+                <p>
+                  Add <code>Review section</code> to product templates for the
+                  rating summary, review form, filters, cards, and pagination.
+                </p>
+              </div>
+
+              <div className={styles.statusCard}>
+                <span>{canUseStarBadge ? "Available block" : "Growth feature"}</span>
+                <h3>Star badge</h3>
+                <p>
+                  {canUseStarBadge
+                    ? "Add "
+                    : "Star badge is available from the Growth pack. Upgrade before adding "}
+                  <code>Star badge</code>
+                  {canUseStarBadge
+                    ? " near the product title or price. Its settings appear directly in Shopify's theme editor."
+                    : " to your product template."}
+                </p>
+              </div>
+
+              <div className={styles.statusCard}>
+                <span>{canUseStarBadge ? "Available block" : "Growth feature"}</span>
+                <h3>Video reviews</h3>
+                <p>
+                  {canUseStarBadge
+                    ? "Add "
+                    : "Video reviews is available from the Growth pack. Upgrade before adding "}
+                  <code>Video reviews</code>
+                  {canUseStarBadge
+                    ? " to showcase published photo and video feedback in a storefront carousel."
+                    : " to your storefront templates."}
+                </p>
+              </div>
             </div>
           </s-section>
         </aside>

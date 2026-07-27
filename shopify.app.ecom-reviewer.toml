@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "fa35c84d388af547e3cf332b3439d0ff"
-name = "ecom reviewer "
+name = "ReviewLift"
 application_url = "https://ecom-review-app.onrender.com"
 embedded = true
 
