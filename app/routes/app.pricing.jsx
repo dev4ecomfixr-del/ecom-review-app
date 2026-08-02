@@ -146,15 +146,10 @@ export const action = async ({ request }) => {
       });
 
       if (isCustomAppBillingError(error)) {
-        await setShopPlanCode(session.shop, plan);
-        await syncStarBadgeAvailability(admin, plan);
-
         return {
-          billingEnabled: false,
-          notice:
-            "Custom apps cannot use Shopify Billing API. Plan saved locally without charging.",
-          ok: true,
-          plan,
+          error:
+            "Shopify Billing is unavailable because this app is configured for custom distribution. Use the App Store-distributed app configuration to test paid plans.",
+          ok: false,
         };
       }
 
@@ -195,8 +190,6 @@ export default function Pricing() {
   const navigation = useNavigation();
   const submit = useSubmit();
   const shopify = useAppBridge();
-  const effectiveBillingEnabled =
-    actionData?.billingEnabled === false ? false : billingEnabled;
   const selectedPlan =
     actionData?.error
       ? currentPlanCode
@@ -224,10 +217,6 @@ export default function Pricing() {
         {actionData?.error ? (
           <p className={styles.billingError}>{actionData.error}</p>
         ) : null}
-        {actionData?.notice ? (
-          <p className={styles.billingNotice}>{actionData.notice}</p>
-        ) : null}
-
         <div className={styles.planGrid}>
           {PLANS.map((plan) => {
             const isCurrent = selectedPlan === plan.code;
@@ -295,14 +284,14 @@ export default function Pricing() {
           </div>
           <div className={styles.noteCard}>
             <h3>
-              {effectiveBillingEnabled
+              {billingEnabled
                 ? "Shopify billing is active"
-                : "Plan selection is active"}
+                : "Shopify billing is disabled"}
             </h3>
             <p>
-              {effectiveBillingEnabled
+              {billingEnabled
                 ? "Paid plans redirect merchants to Shopify for subscription approval before the plan is saved for this shop."
-                : "Custom apps cannot use Shopify Billing API, so the selected plan is saved for this shop without charging."}
+                : "Enable Shopify Billing before offering paid plans. Paid features are not activated while billing is disabled."}
             </p>
           </div>
         </div>
