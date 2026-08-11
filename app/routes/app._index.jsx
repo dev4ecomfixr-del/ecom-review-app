@@ -34,8 +34,7 @@ export const loader = async ({ request }) => {
       stats: {
         totalReviews: 0,
         publishedReviews: 0,
-        hiddenReviews: 0,
-        pendingReviews: 0,
+        repliedReviews: 0,
         averageRating: 0,
       },
       plan: DEFAULT_PLAN,
@@ -47,8 +46,7 @@ export const loader = async ({ request }) => {
     reviews,
     totalReviews,
     publishedReviews,
-    hiddenReviews,
-    pendingReviews,
+    repliedReviews,
     averageRating,
     planCode,
   ] = await Promise.all([
@@ -62,17 +60,14 @@ export const loader = async ({ request }) => {
         where: { shop: session.shop, status: "PUBLISHED" },
       }),
       reviewDelegate.count({
-        where: { shop: session.shop, status: "HIDDEN" },
-      }),
-      reviewDelegate.count({
-        where: { shop: session.shop, status: "PENDING" },
+        where: { shop: session.shop, merchantReply: { not: null } },
       }),
       reviewDelegate.aggregate({
         where: { shop: session.shop, status: "PUBLISHED" },
         _avg: { rating: true },
       }),
       getShopPlanCode(session.shop),
-    ]);
+  ]);
   const plan = getPlanByCode(planCode || DEFAULT_PLAN.code);
 
   return {
@@ -81,8 +76,7 @@ export const loader = async ({ request }) => {
     stats: {
       totalReviews,
       publishedReviews,
-      hiddenReviews,
-      pendingReviews,
+      repliedReviews,
       averageRating: averageRating._avg.rating || 0,
     },
     plan,
@@ -97,14 +91,6 @@ export const action = async ({ request }) => {
   const intent = formData.get("intent");
   const reviewId = formData.get("reviewId");
 
-  if (intent === "delete-all" && reviewDelegate) {
-    await reviewDelegate.deleteMany({
-      where: { shop: session.shop },
-    });
-
-    return { ok: true };
-  }
-
   if (intent === "save-reply" && reviewId && reviewDelegate) {
     const merchantReply = String(formData.get("merchantReply") || "").trim().slice(0, 1000);
     await reviewDelegate.updateMany({
@@ -117,39 +103,6 @@ export const action = async ({ request }) => {
     return { ok: true };
   }
 
-  if (!reviewId || !reviewDelegate) {
-    return { ok: false };
-  }
-
-  if (intent === "delete") {
-    await reviewDelegate.deleteMany({
-      where: { id: String(reviewId), shop: session.shop },
-    });
-  }
-
-  if (intent === "toggle-status") {
-    const review = await reviewDelegate.findFirst({
-      where: { id: String(reviewId), shop: session.shop },
-      select: { status: true },
-    });
-
-    if (review) {
-      await reviewDelegate.update({
-        where: { id: String(reviewId) },
-        data: {
-          status: review.status === "PUBLISHED" ? "HIDDEN" : "PUBLISHED",
-        },
-      });
-    }
-  }
-
-  if (intent === "approve") {
-    await reviewDelegate.updateMany({
-      where: { id: String(reviewId), shop: session.shop },
-      data: { status: "PUBLISHED" },
-    });
-  }
-
   return { ok: true };
 };
 
@@ -159,7 +112,6 @@ export default function Dashboard() {
   const fetcher = useFetcher();
   const [selectedProduct, setSelectedProduct] = useState("all");
   const [productSearch, setProductSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
   const averageRating = stats.averageRating.toFixed(1);
@@ -168,25 +120,16 @@ export default function Dashboard() {
     plan.reviewLimit === null
       ? null
       : Math.max(plan.reviewLimit - stats.totalReviews, 0);
-  const publishedRate =
-    stats.totalReviews > 0
-      ? Math.round((stats.publishedReviews / stats.totalReviews) * 100)
-      : 0;
   const chartValues = [
     {
       color: "#10b981",
-      label: "Published",
-      value: stats.publishedReviews,
+      label: "Replied",
+      value: stats.repliedReviews,
     },
     {
-      color: "#1f2937",
-      label: "Hidden",
-      value: stats.hiddenReviews,
-    },
-    {
-      color: "#1d4ed8",
-      label: "Pending",
-      value: stats.pendingReviews,
+      color: "#dbe4e0",
+      label: "Awaiting reply",
+      value: Math.max(stats.totalReviews - stats.repliedReviews, 0),
     },
   ];
   let chartOffset = 0;
@@ -224,20 +167,20 @@ export default function Dashboard() {
     {
       label: "Published",
       value: stats.publishedReviews,
-      detail: `${publishedRate}% visible`,
+      detail: "Visible on storefront",
       tone: "emerald",
     },
     {
-      label: "Hidden",
-      value: stats.hiddenReviews,
-      detail: "Moderated reviews",
-      tone: "ink",
+      label: "Store replies",
+      value: stats.repliedReviews,
+      detail: "Public responses",
+      tone: "sky",
     },
     {
-      label: "Pending",
-      value: stats.pendingReviews,
-      detail: "Awaiting approval",
-      tone: "sky",
+      label: "Average rating",
+      value: averageRating,
+      detail: "Across published reviews",
+      tone: "gold",
     },
   ];
   const getReviewProductKey = (review) =>
@@ -275,9 +218,6 @@ export default function Dashboard() {
         : true,
     )
     .filter((review) =>
-      statusFilter === "all" ? true : review.status === statusFilter,
-    )
-    .filter((review) =>
       ratingFilter === "all" ? true : review.rating === Number(ratingFilter),
     )
     .sort((a, b) => {
@@ -289,7 +229,6 @@ export default function Dashboard() {
   const hasActiveReviewFilters =
     selectedProduct !== "all" ||
     productSearch.trim() ||
-    statusFilter !== "all" ||
     ratingFilter !== "all" ||
     sortOrder !== "newest";
 
@@ -350,8 +289,8 @@ export default function Dashboard() {
 
             <div className={styles.pieCard}>
               <div>
-                <span className={styles.pieEyebrow}>Review mix</span>
-                <h3>Status breakdown</h3>
+                <span className={styles.pieEyebrow}>Engagement</span>
+                <h3>Reply coverage</h3>
               </div>
               <div className={styles.pieChartWrap}>
                 <div
@@ -407,12 +346,7 @@ export default function Dashboard() {
                   </p>
                 </div>
               </div>
-              <fetcher.Form method="post">
-                <input type="hidden" name="intent" value="delete-all" />
-                <s-button type="submit" tone="critical" variant="secondary">
-                  Delete all reviews
-                </s-button>
-              </fetcher.Form>
+              <span>Normal reviews publish automatically</span>
             </div>
             <div className={styles.productFilterPanel}>
               <div className={styles.reviewFilterControls}>
@@ -430,18 +364,6 @@ export default function Dashboard() {
                       value={productSearch}
                     />
                   </div>
-                </label>
-                <label>
-                  <span>Status</span>
-                  <select
-                    onChange={(event) => setStatusFilter(event.target.value)}
-                    value={statusFilter}
-                  >
-                    <option value="all">All statuses</option>
-                    <option value="PUBLISHED">Published</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="HIDDEN">Hidden</option>
-                  </select>
                 </label>
                 <label>
                   <span>Rating</span>
@@ -500,7 +422,6 @@ export default function Dashboard() {
                     onClick={() => {
                       setSelectedProduct("all");
                       setProductSearch("");
-                      setStatusFilter("all");
                       setRatingFilter("all");
                       setSortOrder("newest");
                     }}
@@ -541,8 +462,8 @@ export default function Dashboard() {
                         <span>{formatDate(review.createdAt)}</span>
                       </div>
                     </div>
-                    <s-badge tone={review.status === "PUBLISHED" ? "success" : "info"}>
-                      {review.status}
+                    <s-badge tone="success">
+                      Published
                     </s-badge>
                     <span className={styles.rowChevron}>⌄</span>
                   </summary>
@@ -588,27 +509,7 @@ export default function Dashboard() {
                     </details>
                     <div className={styles.expandedFooter}>
                       <span>{review.customerEmail || "No customer email"}</span>
-                      <div className={styles.reviewActions}>
-                        {review.status === "PENDING" && (
-                          <fetcher.Form method="post">
-                            <input type="hidden" name="reviewId" value={review.id} />
-                            <input type="hidden" name="intent" value="approve" />
-                            <s-button type="submit" variant="primary">Approve</s-button>
-                          </fetcher.Form>
-                        )}
-                        <fetcher.Form method="post">
-                          <input type="hidden" name="reviewId" value={review.id} />
-                          <input type="hidden" name="intent" value="toggle-status" />
-                          <s-button type="submit" variant="secondary">
-                            {review.status === "PUBLISHED" ? "Hide" : "Publish"}
-                          </s-button>
-                        </fetcher.Form>
-                        <fetcher.Form method="post">
-                          <input type="hidden" name="reviewId" value={review.id} />
-                          <input type="hidden" name="intent" value="delete" />
-                          <s-button type="submit" tone="critical" variant="secondary">Delete</s-button>
-                        </fetcher.Form>
-                      </div>
+                      <span>Reply publicly to customer feedback</span>
                     </div>
                   </div>
                 </details>
@@ -681,7 +582,7 @@ export default function Dashboard() {
                 : `${plan.reviewLimit} review limit`}
             </li>
             <li>Storefront review section</li>
-            <li>Publish and hide controls</li>
+            <li>Public review replies</li>
           </ul>
         </div>
           </s-section>

@@ -20,9 +20,6 @@ import styles from "../styles/pricing.module.css";
 const PAID_PLAN_CODES = [PLAN_CODES.GROWTH, PLAN_CODES.PRO];
 const PAID_PLAN_PRIORITY = [PLAN_CODES.PRO, PLAN_CODES.GROWTH];
 
-const isShopifyBillingEnabled = () =>
-  process.env.SHOPIFY_BILLING_ENABLED !== "false";
-
 const isBillingTestMode = () =>
   process.env.SHOPIFY_BILLING_TEST === "true" ||
   process.env.NODE_ENV !== "production";
@@ -70,7 +67,6 @@ const isCustomAppBillingError = (error) =>
 export const loader = async ({ request }) => {
   const { admin, billing, session } = await authenticate.admin(request);
   const billingPlan = new URL(request.url).searchParams.get("billing_plan");
-  const billingEnabled = isShopifyBillingEnabled();
   const [planCode, reviewCount] = await Promise.all([
     getShopPlanCode(session.shop),
     db.review.count({ where: { shop: session.shop } }),
@@ -78,20 +74,18 @@ export const loader = async ({ request }) => {
   let currentPlanCode = planCode || DEFAULT_PLAN.code;
   let activePaidPlan = null;
 
-  if (billingEnabled) {
-    const billingCheck = await billing.check({
-      plans: PAID_PLAN_CODES,
-      isTest: isBillingTestMode(),
-    });
-    activePaidPlan = getActivePaidPlan(billingCheck.appSubscriptions);
-  }
+  const billingCheck = await billing.check({
+    plans: PAID_PLAN_CODES,
+    isTest: isBillingTestMode(),
+  });
+  activePaidPlan = getActivePaidPlan(billingCheck.appSubscriptions);
 
   if (activePaidPlan && currentPlanCode !== activePaidPlan) {
     await setShopPlanCode(session.shop, activePaidPlan);
     currentPlanCode = activePaidPlan;
   }
 
-  if (billingEnabled && PAID_PLAN_CODES.includes(currentPlanCode) && !activePaidPlan) {
+  if (PAID_PLAN_CODES.includes(currentPlanCode) && !activePaidPlan) {
     await setShopPlanCode(session.shop, DEFAULT_PLAN.code);
     currentPlanCode = DEFAULT_PLAN.code;
   }
@@ -109,7 +103,6 @@ export const loader = async ({ request }) => {
   await syncStarBadgeAvailability(admin, currentPlan.code);
 
   return {
-    billingEnabled,
     currentPlanCode: currentPlan.code,
     isLimitReached:
       currentPlan.reviewLimit !== null && reviewCount >= currentPlan.reviewLimit,
@@ -122,13 +115,12 @@ export const action = async ({ request }) => {
   const { admin, billing, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const plan = String(formData.get("plan") || "");
-  const billingEnabled = isShopifyBillingEnabled();
 
   if (!isValidPlanCode(plan)) {
     return { ok: false };
   }
 
-  if (billingEnabled && PAID_PLAN_CODES.includes(plan)) {
+  if (PAID_PLAN_CODES.includes(plan)) {
     try {
       await billing.request({
         plan,
@@ -160,7 +152,7 @@ export const action = async ({ request }) => {
     }
   }
 
-  if (billingEnabled && plan === DEFAULT_PLAN.code) {
+  if (plan === DEFAULT_PLAN.code) {
     const billingCheck = await billing.check({
       plans: PAID_PLAN_CODES,
       isTest: isBillingTestMode(),
@@ -184,8 +176,7 @@ export const action = async ({ request }) => {
 };
 
 export default function Pricing() {
-  const { billingEnabled, currentPlanCode, isLimitReached, usageLabel } =
-    useLoaderData();
+  const { currentPlanCode, isLimitReached, usageLabel } = useLoaderData();
   const actionData = useActionData();
   const navigation = useNavigation();
   const submit = useSubmit();
@@ -283,15 +274,10 @@ export default function Pricing() {
             </p>
           </div>
           <div className={styles.noteCard}>
-            <h3>
-              {billingEnabled
-                ? "Shopify billing is active"
-                : "Shopify billing is disabled"}
-            </h3>
+            <h3>Shopify billing is active</h3>
             <p>
-              {billingEnabled
-                ? "Paid plans redirect merchants to Shopify for subscription approval before the plan is saved for this shop."
-                : "Enable Shopify Billing before offering paid plans. Paid features are not activated while billing is disabled."}
+              Paid plans redirect merchants to Shopify for subscription approval
+              before the plan is saved for this shop.
             </p>
           </div>
         </div>

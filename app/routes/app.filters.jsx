@@ -2,9 +2,12 @@ import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import {
+  BUILT_IN_MODERATION_RULES,
+  PROTECTED_CRITICISM_TERMS,
   addFilterWord,
   deleteFilterWord,
   getFilterWords,
+  validateModerationTerm,
 } from "../lib/filter-words.server";
 import styles from "../styles/filters.module.css";
 
@@ -12,7 +15,14 @@ export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
   const filterWords = await getFilterWords(session.shop);
 
-  return { filterWords };
+  return {
+    filterWords: filterWords.map((filterWord) => ({
+      ...filterWord,
+      isAllowed: !validateModerationTerm(filterWord.word).error,
+    })),
+    builtInRules: BUILT_IN_MODERATION_RULES,
+    protectedCriticismTerms: PROTECTED_CRITICISM_TERMS,
+  };
 };
 
 export const action = async ({ request }) => {
@@ -21,7 +31,8 @@ export const action = async ({ request }) => {
   const intent = String(formData.get("intent") || "");
 
   if (intent === "add") {
-    await addFilterWord(session.shop, formData.get("word"));
+    const result = await addFilterWord(session.shop, formData.get("word"));
+    if (result.error) return { error: result.error, ok: false };
   }
 
   if (intent === "delete") {
@@ -32,26 +43,29 @@ export const action = async ({ request }) => {
 };
 
 export default function Filters() {
-  const { filterWords } = useLoaderData();
+  const { builtInRules, filterWords, protectedCriticismTerms } = useLoaderData();
   const fetcher = useFetcher();
+  const activeFilterWords = filterWords.filter((filterWord) => filterWord.isAllowed);
+  const activeRuleCount = builtInRules.length + activeFilterWords.length;
 
   return (
-    <s-page heading="Review filters" inlineSize="large">
+    <s-page heading="Content Moderation" inlineSize="large">
       <div className={styles.filtersLayout}>
         <main className={styles.filtersMain}>
-          <s-section heading="Approval words">
+          <s-section heading="Content moderation">
             <div className={styles.hero}>
               <div className={styles.heroCopy}>
                 <p className={styles.eyebrow}>Automatic moderation</p>
                 <h2>Keep every review trustworthy</h2>
                 <p>
-                  Flag sensitive words before reviews reach your storefront.
-                  Matched submissions move to pending so you stay in control.
+                  Detect spam, profanity, personal information, and inappropriate
+                  content before submission. Customers must remove matched content
+                  before their review can be published.
                 </p>
               </div>
               <div className={styles.ruleCount}>
-                <strong>{filterWords.length}</strong>
-                <span>Active {filterWords.length === 1 ? "rule" : "rules"}</span>
+                <strong>{activeRuleCount}</strong>
+                <span>Active {activeRuleCount === 1 ? "rule" : "rules"}</span>
               </div>
             </div>
 
@@ -59,33 +73,60 @@ export default function Filters() {
               <div className={styles.panelHeading}>
                 <div className={styles.panelIcon}>+</div>
                 <div>
-                  <h3>Add a filter word</h3>
-                  <p>Reviews containing this word will require approval.</p>
+                  <h3>Add a moderation term</h3>
+                  <p>Add only profanity, slurs, spam markers, or unsafe content terms.</p>
                 </div>
               </div>
               <fetcher.Form className={styles.addForm} method="post">
                 <input type="hidden" name="intent" value="add" />
                 <label>
-                  <span className={styles.visuallyHidden}>Filter word</span>
+                  <span className={styles.visuallyHidden}>Moderation term</span>
                   <input
                     name="word"
-                    placeholder="Type a word, for example: refund"
+                    placeholder="For example: a spam domain or abusive term"
                     maxLength={80}
                     required
                   />
                 </label>
                 <s-button type="submit" variant="primary">
-                  Add filter
+                  Add term
                 </s-button>
               </fetcher.Form>
+              {fetcher.data?.error ? (
+                <s-banner tone="critical">{fetcher.data.error}</s-banner>
+              ) : null}
+            </div>
+
+            <div className={styles.rulesPanel}>
+              <div className={styles.rulesHeader}>
+                <div>
+                  <p className={styles.eyebrow}>Backend protection</p>
+                  <h3>Automatic checks</h3>
+                </div>
+                <span>{builtInRules.length} always active</span>
+              </div>
+              <div className={styles.wordList}>
+                {builtInRules.map((rule) => (
+                  <article className={styles.wordCard} key={rule.id}>
+                    <div className={styles.wordIdentity}>
+                      <span className={styles.wordIcon}>✓</span>
+                      <div>
+                        <small>Always active</small>
+                        <strong>{rule.label}</strong>
+                        <p>{rule.description}</p>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
 
         {filterWords.length === 0 ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>✓</div>
             <div>
-              <h3>No filter words yet</h3>
-              <p>Add your first word to start automatic moderation.</p>
+              <h3>No moderation terms yet</h3>
+              <p>Personal information and suspicious links are still detected automatically.</p>
             </div>
           </div>
         ) : (
@@ -93,7 +134,7 @@ export default function Filters() {
             <div className={styles.rulesHeader}>
               <div>
                 <p className={styles.eyebrow}>Moderation list</p>
-                <h3>Active filter words</h3>
+                <h3>Moderation terms</h3>
               </div>
               <span>{filterWords.length} total</span>
             </div>
@@ -103,7 +144,7 @@ export default function Filters() {
                   <div className={styles.wordIdentity}>
                     <span className={styles.wordIcon}>#</span>
                     <div>
-                      <small>Approval required</small>
+                      <small>{filterWord.isAllowed ? "Content safety rule" : "Inactive criticism term"}</small>
                       <strong>{filterWord.word}</strong>
                     </div>
                   </div>
@@ -119,6 +160,11 @@ export default function Filters() {
             </div>
           </div>
         )}
+
+            <s-banner tone="info">
+              Legitimate criticism is protected. These terms cannot be used as
+              moderation filters: {protectedCriticismTerms.join(", ")}.
+            </s-banner>
           </s-section>
         </main>
 
@@ -133,15 +179,15 @@ export default function Filters() {
               <ol>
                 <li>
                   <span>1</span>
-                  <div><strong>Add filter words</strong><p>Choose terms that need a manual check.</p></div>
+                  <div><strong>Set safety terms</strong><p>Use only objective spam, abuse, or privacy signals.</p></div>
                 </li>
                 <li>
                   <span>2</span>
-                  <div><strong>Reviews are flagged</strong><p>Matches are held safely as pending.</p></div>
+                  <div><strong>Unsafe content is blocked</strong><p>The customer sees the reason and can edit their review.</p></div>
                 </li>
                 <li>
                   <span>3</span>
-                  <div><strong>Approve and publish</strong><p>Release trusted reviews from the dashboard.</p></div>
+                  <div><strong>Normal reviews publish</strong><p>Legitimate feedback appears automatically.</p></div>
                 </li>
               </ol>
               <div className={styles.sideStatus}>

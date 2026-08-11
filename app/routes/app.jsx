@@ -20,7 +20,7 @@ export default function App() {
         <s-link href="/app/widgets">Widgets</s-link>
         <s-link href="/app/review-reward">Review reward</s-link>
         <s-link href="/app/order-notifications">Order Notifications</s-link>
-        <s-link href="/app/filters">Filters</s-link>
+        <s-link href="/app/filters">Content Moderation</s-link>
         <s-link href="/app/pricing">Pricing</s-link>
       </s-app-nav>
       <Outlet />

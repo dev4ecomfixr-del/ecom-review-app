@@ -1208,6 +1208,32 @@
   line-height: 1.65;
 }
 
+.ecom-reviewer__review-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.ecom-reviewer__review-card-footer .ecom-reviewer__review-highlights {
+  justify-content: flex-end;
+  margin-left: auto;
+  margin-top: 0;
+}
+
+.ecom-reviewer__review-highlights span {
+  display: inline-flex;
+  min-height: 28px;
+  padding: 0 10px;
+  align-items: center;
+  border: 1px solid rgba(15, 123, 93, 0.2);
+  border-radius: 999px;
+  background: #effaf5;
+  color: #08765a;
+  font-size: 11px;
+  font-weight: 750;
+}
+
 .ecom-reviewer__review-card-footer {
   display: flex;
   align-items: center;

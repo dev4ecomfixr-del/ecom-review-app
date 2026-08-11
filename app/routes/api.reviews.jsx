@@ -106,7 +106,7 @@ textarea{min-height:120px;resize:vertical;line-height:1.5}
       var fd=new FormData(this);
       var res=await fetch('/apps/reviews',{method:'POST',body:fd});
       var data=await res.json();
-      if(!res.ok||data.error){errBox.innerHTML='<p class="err">'+(data.error||'Something went wrong. Please try again.')+'</p>';btn.disabled=false;btn.textContent='Submit review';return;}
+      if(!res.ok||data.error){var msg=data.error||'Something went wrong. Please try again.';errBox.innerHTML='<p class="err">'+msg+'</p>';if(data.code){window.alert(msg);}btn.disabled=false;btn.textContent='Submit review';return;}
       document.getElementById('form-wrap').style.display='none';
       document.getElementById('success-wrap').style.display='block';
     }catch(err){errBox.innerHTML='<p class="err">Could not submit. Please try again.</p>';btn.disabled=false;btn.textContent='Submit review';}
@@ -115,7 +115,7 @@ textarea{min-height:120px;resize:vertical;line-height:1.5}
 </script>
 </body>
 </html>`;
-import { findMatchedFilterWord } from "../lib/filter-words.server";
+import { detectModerationReason } from "../lib/filter-words.server";
 import {
   DEFAULT_PLAN,
   PLAN_CODES,
@@ -136,6 +136,50 @@ import {
   uploadReviewPhotosToShopify,
 } from "../lib/shopify-files.server";
 import { unauthenticated } from "../shopify.server";
+
+const MODERATION_MESSAGES = {
+  CUSTOM_MODERATION_TERM:
+    "Your review contains language that isn't allowed. Please remove profanity, abusive, or inappropriate content and try again.",
+  EMAIL_ADDRESS:
+    "You can't include an email address in a review. Please remove it and try again.",
+  PHONE_NUMBER:
+    "You can't share a phone number in a review. Please remove it and try again.",
+  SUSPICIOUS_LINK:
+    "You can't include promotional or suspicious links in a review. Please remove the link and try again.",
+};
+
+const REVIEW_HIGHLIGHTS = [
+  "Fast delivery",
+  "Great quality",
+  "As described",
+  "Good value",
+  "Great packaging",
+];
+
+const normalizeHighlights = (values) => {
+  const allowedHighlights = new Map(
+    REVIEW_HIGHLIGHTS.map((highlight) => [highlight.toLowerCase(), highlight]),
+  );
+
+  return Array.from(
+    new Set(
+      values
+        .flatMap((value) => (Array.isArray(value) ? value : [value]))
+        .map((value) => allowedHighlights.get(String(value || "").trim().toLowerCase()))
+        .filter(Boolean),
+    ),
+  );
+};
+
+const parseStoredHighlights = (value) => {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? normalizeHighlights(parsed) : [];
+  } catch {
+    return [];
+  }
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -320,8 +364,23 @@ export const loader = async ({ request }) => {
   });
 
   const hydratedReviews = await hydrateMissingPhotoUrls(shop, reviews);
+  const storedHighlights = await db.$queryRaw`
+    SELECT id, highlights
+    FROM Review
+    WHERE shop = ${shop} AND highlights IS NOT NULL
+  `;
+  const highlightsByReviewId = new Map(
+    storedHighlights.map((review) => [
+      review.id,
+      parseStoredHighlights(review.highlights),
+    ]),
+  );
+  const reviewsWithHighlights = hydratedReviews.map((review) => ({
+    ...review,
+    highlights: highlightsByReviewId.get(review.id) || [],
+  }));
 
-  return json({ reviews: normalizeReviewMediaTypes(hydratedReviews) });
+  return json({ reviews: normalizeReviewMediaTypes(reviewsWithHighlights) });
 };
 
 export const action = async ({ request }) => {
@@ -347,11 +406,27 @@ export const action = async ({ request }) => {
   const productHandle = cleanText(payload.productHandle, 255);
   const productTitle = cleanText(payload.productTitle, 255);
   const rating = normalizeRating(payload.rating);
+  const highlights = normalizeHighlights(
+    formData ? formData.getAll("highlights") : [payload.highlights],
+  );
 
   if (!shop || !customerName || !body || !rating) {
     return json(
       { error: "Name, rating, review, and shop are required." },
       { status: 400 },
+    );
+  }
+
+  const moderationReason = await detectModerationReason(shop, [title, body]);
+  if (moderationReason) {
+    return json(
+      {
+        code: moderationReason,
+        error:
+          MODERATION_MESSAGES[moderationReason] ||
+          "This review contains content that isn't allowed. Please edit it and try again.",
+      },
+      { status: 422 },
     );
   }
 
@@ -370,8 +445,7 @@ export const action = async ({ request }) => {
     );
   }
 
-  const matchedFilterWord = await findMatchedFilterWord(shop, [title, body]);
-  const status = matchedFilterWord ? "PENDING" : "PUBLISHED";
+  const status = "PUBLISHED";
   let uploadedPhotos = [];
 
   try {
@@ -433,6 +507,16 @@ export const action = async ({ request }) => {
     },
   });
 
+  if (highlights.length) {
+    await db.$executeRaw`
+      UPDATE Review
+      SET highlights = ${JSON.stringify(highlights)}, updatedAt = CURRENT_TIMESTAMP
+      WHERE id = ${review.id} AND shop = ${shop}
+    `;
+  }
+
+  const reviewWithHighlights = { ...review, highlights };
+
   let reviewReward = null;
   let reviewRewardError = null;
   try {
@@ -478,5 +562,8 @@ export const action = async ({ request }) => {
       "The review was submitted, but the coupon settings could not be loaded.";
   }
 
-  return json({ review, reviewReward, reviewRewardError }, { status: 201 });
+  return json(
+    { review: reviewWithHighlights, reviewReward, reviewRewardError },
+    { status: 201 },
+  );
 };

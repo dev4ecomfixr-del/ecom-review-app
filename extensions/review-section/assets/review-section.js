@@ -172,6 +172,15 @@
     const stars = (rating) =>
       `${"★".repeat(rating)}${"☆".repeat(5 - rating)}`;
 
+    const renderHighlights = (highlights) => {
+      if (!Array.isArray(highlights) || !highlights.length) return "";
+      return `
+        <div class="ecom-reviewer__review-highlights" aria-label="Review highlights">
+          ${highlights.map((highlight) => `<span>✓ ${escapeHtml(highlight)}</span>`).join("")}
+        </div>
+      `;
+    };
+
     const setProgress = (percent, label) => {
       if (!progress) return;
       const value = Math.max(0, Math.min(100, Math.round(percent)));
@@ -256,7 +265,7 @@
               </div>
               <div class="ecom-reviewer__review-card-footer">
                 <time>${review.createdAt ? formatDate(review.createdAt) : ""}</time>
-                <span class="ecom-reviewer__recommend">♥ <small>Would recommend</small></span>
+                ${renderHighlights(review.highlights)}
               </div>
             </article>
           `,
@@ -493,7 +502,9 @@
 
         if (!ok) {
           progress.hidden = true;
-          message.textContent = data.error || "Could not submit your review. Please try again.";
+          const errorMessage = data.error || "Could not submit your review. Please try again.";
+          message.textContent = errorMessage;
+          if (data.code) window.alert(errorMessage);
           return;
         }
 
