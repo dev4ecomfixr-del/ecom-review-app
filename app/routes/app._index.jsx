@@ -4,7 +4,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { DEFAULT_PLAN, getPlanByCode, getPlanUsageLabel } from "../lib/plans";
-import { getShopPlanCode } from "../lib/shop-plans.server";
+import { syncShopPlanFromBilling } from "../lib/shop-plans.server";
 import styles from "../styles/review-dashboard.module.css";
 
 const formatDate = (date) =>
@@ -23,8 +23,13 @@ const getCustomerInitials = (name) => {
 };
 
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { billing, session } = await authenticate.admin(request);
   const reviewDelegate = db.review;
+  const { planCode } = await syncShopPlanFromBilling({
+    billing,
+    shop: session.shop,
+  });
+  const plan = getPlanByCode(planCode || DEFAULT_PLAN.code);
 
   if (!reviewDelegate) {
     return {
@@ -37,8 +42,8 @@ export const loader = async ({ request }) => {
         repliedReviews: 0,
         averageRating: 0,
       },
-      plan: DEFAULT_PLAN,
-      planUsageLabel: getPlanUsageLabel(DEFAULT_PLAN, 0),
+      plan,
+      planUsageLabel: getPlanUsageLabel(plan, 0),
     };
   }
 
@@ -48,7 +53,6 @@ export const loader = async ({ request }) => {
     publishedReviews,
     repliedReviews,
     averageRating,
-    planCode,
   ] = await Promise.all([
       reviewDelegate.findMany({
         where: { shop: session.shop },
@@ -66,9 +70,7 @@ export const loader = async ({ request }) => {
         where: { shop: session.shop, status: "PUBLISHED" },
         _avg: { rating: true },
       }),
-      getShopPlanCode(session.shop),
   ]);
-  const plan = getPlanByCode(planCode || DEFAULT_PLAN.code);
 
   return {
     shop: session.shop,

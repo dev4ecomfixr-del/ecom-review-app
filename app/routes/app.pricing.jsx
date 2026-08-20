@@ -8,20 +8,20 @@ import db from "../db.server";
 import {
   DEFAULT_PLAN,
   PLANS,
-  PLAN_CODES,
   getPlanByCode,
   getPlanUsageLabel,
   isValidPlanCode,
 } from "../lib/plans";
 import { syncStarBadgeAvailability } from "../lib/app-feature-metafields.server";
-import { getShopPlanCode, setShopPlanCode } from "../lib/shop-plans.server";
+import {
+  PAID_PLAN_CODES,
+  setShopPlanCode,
+  syncShopPlanFromBilling,
+} from "../lib/shop-plans.server";
 import styles from "../styles/pricing.module.css";
 
-const PAID_PLAN_CODES = [PLAN_CODES.GROWTH, PLAN_CODES.PRO];
-const PAID_PLAN_PRIORITY = [PLAN_CODES.PRO, PLAN_CODES.GROWTH];
-
 const isBillingTestMode = () =>
-  process.env.SHOPIFY_BILLING_TEST === "true" ||
+  process.env.SHOPIFY_BILLING_TEST === true ||
   process.env.NODE_ENV !== "production";
 
 const getBillingReturnUrl = (plan, shop) => {
@@ -39,14 +39,6 @@ const getBillingReturnUrl = (plan, shop) => {
   );
   returnUrl.searchParams.set("billing_plan", plan);
   return returnUrl.toString();
-};
-
-const getActivePaidPlan = (appSubscriptions = []) => {
-  const activePlanNames = appSubscriptions.map((subscription) => subscription.name);
-
-  return PAID_PLAN_PRIORITY.find((planCode) =>
-    activePlanNames.includes(planCode),
-  );
 };
 
 const formatBillingError = (error) => {
@@ -67,46 +59,29 @@ const isCustomAppBillingError = (error) =>
 export const loader = async ({ request }) => {
   const { admin, billing, session } = await authenticate.admin(request);
   const billingPlan = new URL(request.url).searchParams.get("billing_plan");
-  const [planCode, reviewCount] = await Promise.all([
-    getShopPlanCode(session.shop),
+  const [{ planCode: currentPlanCode }, reviewCount] = await Promise.all([
+    syncShopPlanFromBilling({ billing, shop: session.shop }),
     db.review.count({ where: { shop: session.shop } }),
   ]);
-  let currentPlanCode = planCode || DEFAULT_PLAN.code;
-  let activePaidPlan = null;
-
-  const billingCheck = await billing.check({
-    plans: PAID_PLAN_CODES,
-    isTest: isBillingTestMode(),
-  });
-  activePaidPlan = getActivePaidPlan(billingCheck.appSubscriptions);
-
-  if (activePaidPlan && currentPlanCode !== activePaidPlan) {
-    await setShopPlanCode(session.shop, activePaidPlan);
-    currentPlanCode = activePaidPlan;
-  }
-
-  if (PAID_PLAN_CODES.includes(currentPlanCode) && !activePaidPlan) {
-    await setShopPlanCode(session.shop, DEFAULT_PLAN.code);
-    currentPlanCode = DEFAULT_PLAN.code;
-  }
-
-  if (
-    billingPlan &&
-    PAID_PLAN_CODES.includes(billingPlan) &&
-    activePaidPlan !== billingPlan
-  ) {
-    currentPlanCode = DEFAULT_PLAN.code;
-  }
 
   const currentPlan = getPlanByCode(currentPlanCode);
+  const requestedPlan = PAID_PLAN_CODES.includes(billingPlan)
+    ? getPlanByCode(billingPlan)
+    : null;
 
   await syncStarBadgeAvailability(admin, currentPlan.code);
 
   return {
+    billingReturnStatus: requestedPlan
+      ? currentPlan.code === requestedPlan.code
+        ? "approved"
+        : "not-approved"
+      : null,
     currentPlanCode: currentPlan.code,
     isLimitReached:
       currentPlan.reviewLimit !== null && reviewCount >= currentPlan.reviewLimit,
     reviewCount,
+    requestedPlanName: requestedPlan?.name || null,
     usageLabel: getPlanUsageLabel(currentPlan, reviewCount),
   };
 };
@@ -122,7 +97,7 @@ export const action = async ({ request }) => {
 
   if (PAID_PLAN_CODES.includes(plan)) {
     try {
-      await billing.request({
+      return await billing.request({
         plan,
         isTest: isBillingTestMode(),
         returnUrl: getBillingReturnUrl(plan, session.shop),
@@ -153,10 +128,7 @@ export const action = async ({ request }) => {
   }
 
   if (plan === DEFAULT_PLAN.code) {
-    const billingCheck = await billing.check({
-      plans: PAID_PLAN_CODES,
-      isTest: isBillingTestMode(),
-    });
+    const billingCheck = await billing.check();
 
     await Promise.all(
       billingCheck.appSubscriptions.map((subscription) =>
@@ -176,15 +148,21 @@ export const action = async ({ request }) => {
 };
 
 export default function Pricing() {
-  const { currentPlanCode, isLimitReached, usageLabel } = useLoaderData();
+  const {
+    billingReturnStatus,
+    currentPlanCode,
+    isLimitReached,
+    requestedPlanName,
+    usageLabel,
+  } = useLoaderData();
   const actionData = useActionData();
   const navigation = useNavigation();
   const submit = useSubmit();
   const shopify = useAppBridge();
-  const selectedPlan =
-    actionData?.error
-      ? currentPlanCode
-      : navigation.formData?.get("plan") || actionData?.plan || currentPlanCode;
+  const selectedPlan = actionData?.error
+    ? currentPlanCode
+    : actionData?.plan || currentPlanCode;
+  const pendingPlan = navigation.formData?.get("plan");
   const isSaving = navigation.state !== "idle";
 
   useEffect(() => {
@@ -207,6 +185,17 @@ export default function Pricing() {
 
         {actionData?.error ? (
           <p className={styles.billingError}>{actionData.error}</p>
+        ) : null}
+        {billingReturnStatus === "approved" ? (
+          <s-banner tone="success">
+            {requestedPlanName} is now your active subscription.
+          </s-banner>
+        ) : null}
+        {billingReturnStatus === "not-approved" ? (
+          <s-banner tone="warning">
+            {requestedPlanName} was not approved. Your existing subscription
+            remains active.
+          </s-banner>
         ) : null}
         <div className={styles.planGrid}>
           {PLANS.map((plan) => {
@@ -248,7 +237,7 @@ export default function Pricing() {
                     }
                     variant="primary"
                     {...(isCurrent ? { disabled: true } : {})}
-                    {...(isSaving && selectedPlan === plan.code
+                    {...(isSaving && pendingPlan === plan.code
                       ? { loading: true }
                       : {})}
                   >

@@ -20,12 +20,15 @@ import {
   saveStarBadgeSettings,
   syncStarBadgeAvailability,
 } from "../lib/app-feature-metafields.server";
-import { getShopPlanCode } from "../lib/shop-plans.server";
+import { syncShopPlanFromBilling } from "../lib/shop-plans.server";
 import styles from "../styles/widgets.module.css";
 
 export const loader = async ({ request }) => {
-  const { admin, session } = await authenticate.admin(request);
-  const planCode = await getShopPlanCode(session.shop);
+  const { admin, billing, session } = await authenticate.admin(request);
+  const { planCode } = await syncShopPlanFromBilling({
+    billing,
+    shop: session.shop,
+  });
   const plan = getPlanByCode(planCode || DEFAULT_PLAN.code);
 
   try {
