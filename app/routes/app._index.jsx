@@ -52,6 +52,7 @@ export const loader = async ({ request }) => {
   ] = await Promise.all([
       reviewDelegate.findMany({
         where: { shop: session.shop },
+        include: { photos: true },
         orderBy: { createdAt: "desc" },
         take: 25,
       }),
@@ -473,6 +474,37 @@ export default function Dashboard() {
                       <span>Customer review</span>
                       <p className={styles.reviewBody}>{review.body}</p>
                     </div>
+                    {review.photos && review.photos.length > 0 ? (
+                      <div className={styles.reviewPhotos}>
+                        <span>Customer photos & media</span>
+                        <div className={styles.photoGrid}>
+                          {review.photos.map((photo) =>
+                            photo.mediaType === "VIDEO" ? (
+                              <video
+                                key={photo.id}
+                                src={photo.url}
+                                controls
+                                className={styles.photoThumb}
+                              />
+                            ) : (
+                              <a
+                                key={photo.id}
+                                href={photo.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.photoLink}
+                              >
+                                <img
+                                  src={photo.url}
+                                  alt={photo.alt || "Customer review photo"}
+                                  className={styles.photoThumb}
+                                />
+                              </a>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
                     {review.merchantReply ? (
                       <div className={styles.merchantReply}>
                         <span className={styles.replyMark}>↳</span>

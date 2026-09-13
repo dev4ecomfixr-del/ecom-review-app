@@ -42,11 +42,67 @@ const getBillingReturnUrl = (plan, shop) => {
 };
 
 const getActivePaidPlan = (appSubscriptions = []) => {
-  const activePlanNames = appSubscriptions.map((subscription) => subscription.name);
+  const activePlanNames = appSubscriptions.map((subscription) =>
+    String(subscription.name || "").trim().toUpperCase()
+  );
 
   return PAID_PLAN_PRIORITY.find((planCode) =>
-    activePlanNames.includes(planCode),
+    activePlanNames.includes(planCode.toUpperCase()),
   );
+};
+
+const checkShopifyActiveSubscriptions = async (billing, admin) => {
+  // Strategy 1: Standard billing check with configured test mode
+  try {
+    const primaryCheck = await billing.check({
+      plans: PAID_PLAN_CODES,
+      isTest: isBillingTestMode(),
+    });
+    if (primaryCheck?.appSubscriptions?.length > 0) {
+      return primaryCheck.appSubscriptions;
+    }
+  } catch (err) {
+    console.warn("Primary billing check error:", err?.message || err);
+  }
+
+  // Strategy 2: If primary didn't find active subscriptions, check with test=true (for dev/review stores)
+  if (!isBillingTestMode()) {
+    try {
+      const testCheck = await billing.check({
+        plans: PAID_PLAN_CODES,
+        isTest: true,
+      });
+      if (testCheck?.appSubscriptions?.length > 0) {
+        return testCheck.appSubscriptions;
+      }
+    } catch (err) {
+      // ignore
+    }
+  }
+
+  // Strategy 3: Query Shopify GraphQL API directly for current active subscriptions
+  try {
+    const response = await admin.graphql(`
+      #graphql
+      query GetActiveSubscriptions {
+        appInstallation {
+          activeSubscriptions {
+            id
+            name
+            status
+            test
+          }
+        }
+      }
+    `);
+    const data = await response.json();
+    const subs = data.data?.appInstallation?.activeSubscriptions || [];
+    return subs.filter((sub) => sub.status === "ACTIVE");
+  } catch (err) {
+    console.error("Direct GraphQL active subscriptions query error:", err?.message || err);
+  }
+
+  return [];
 };
 
 const formatBillingError = (error) => {
@@ -66,35 +122,20 @@ const isCustomAppBillingError = (error) =>
 
 export const loader = async ({ request }) => {
   const { admin, billing, session } = await authenticate.admin(request);
-  const billingPlan = new URL(request.url).searchParams.get("billing_plan");
   const [planCode, reviewCount] = await Promise.all([
     getShopPlanCode(session.shop),
     db.review.count({ where: { shop: session.shop } }),
   ]);
   let currentPlanCode = planCode || DEFAULT_PLAN.code;
-  let activePaidPlan = null;
 
-  const billingCheck = await billing.check({
-    plans: PAID_PLAN_CODES,
-    isTest: isBillingTestMode(),
-  });
-  activePaidPlan = getActivePaidPlan(billingCheck.appSubscriptions);
+  const activeSubscriptions = await checkShopifyActiveSubscriptions(billing, admin);
+  const activePaidPlan = getActivePaidPlan(activeSubscriptions);
 
   if (activePaidPlan && currentPlanCode !== activePaidPlan) {
     await setShopPlanCode(session.shop, activePaidPlan);
     currentPlanCode = activePaidPlan;
-  }
-
-  if (PAID_PLAN_CODES.includes(currentPlanCode) && !activePaidPlan) {
+  } else if (PAID_PLAN_CODES.includes(currentPlanCode) && !activePaidPlan) {
     await setShopPlanCode(session.shop, DEFAULT_PLAN.code);
-    currentPlanCode = DEFAULT_PLAN.code;
-  }
-
-  if (
-    billingPlan &&
-    PAID_PLAN_CODES.includes(billingPlan) &&
-    activePaidPlan !== billingPlan
-  ) {
     currentPlanCode = DEFAULT_PLAN.code;
   }
 
@@ -153,18 +194,19 @@ export const action = async ({ request }) => {
   }
 
   if (plan === DEFAULT_PLAN.code) {
-    const billingCheck = await billing.check({
-      plans: PAID_PLAN_CODES,
-      isTest: isBillingTestMode(),
-    });
+    const activeSubs = await checkShopifyActiveSubscriptions(billing, admin);
 
     await Promise.all(
-      billingCheck.appSubscriptions.map((subscription) =>
-        billing.cancel({
-          subscriptionId: subscription.id,
-          isTest: isBillingTestMode(),
-          prorate: true,
-        }),
+      activeSubs.map((subscription) =>
+        billing
+          .cancel({
+            subscriptionId: subscription.id,
+            isTest: Boolean(subscription.test),
+            prorate: true,
+          })
+          .catch((err) => {
+            console.warn("Failed to cancel subscription", err?.message || err);
+          }),
       ),
     );
   }

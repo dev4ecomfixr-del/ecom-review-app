@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
@@ -7,20 +8,28 @@ import {
   addFilterWord,
   deleteFilterWord,
   getFilterWords,
+  getModerationSettings,
+  updateModerationRule,
   validateModerationTerm,
 } from "../lib/filter-words.server";
 import styles from "../styles/filters.module.css";
 
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
-  const filterWords = await getFilterWords(session.shop);
+  const [filterWords, moderationSettings] = await Promise.all([
+    getFilterWords(session.shop),
+    getModerationSettings(session.shop),
+  ]);
 
   return {
     filterWords: filterWords.map((filterWord) => ({
       ...filterWord,
       isAllowed: !validateModerationTerm(filterWord.word).error,
     })),
-    builtInRules: BUILT_IN_MODERATION_RULES,
+    builtInRules: BUILT_IN_MODERATION_RULES.map((rule) => ({
+      ...rule,
+      enabled: moderationSettings[rule.id] !== false,
+    })),
     protectedCriticismTerms: PROTECTED_CRITICISM_TERMS,
   };
 };
@@ -39,14 +48,42 @@ export const action = async ({ request }) => {
     await deleteFilterWord(session.shop, String(formData.get("id") || ""));
   }
 
+  if (intent === "toggle_rule") {
+    const ruleId = String(formData.get("ruleId") || "");
+    const enabled = formData.get("enabled") === "true";
+    await updateModerationRule(session.shop, ruleId, enabled);
+  }
+
   return { ok: true };
 };
 
 export default function Filters() {
   const { builtInRules, filterWords, protectedCriticismTerms } = useLoaderData();
   const fetcher = useFetcher();
+  const [localRules, setLocalRules] = useState(builtInRules);
+
+  useEffect(() => {
+    setLocalRules(builtInRules);
+  }, [builtInRules]);
+
+  const activeBuiltInCount = localRules.filter((r) => r.enabled).length;
   const activeFilterWords = filterWords.filter((filterWord) => filterWord.isAllowed);
-  const activeRuleCount = builtInRules.length + activeFilterWords.length;
+  const activeRuleCount = activeBuiltInCount + activeFilterWords.length;
+
+  const handleToggle = (ruleId, currentEnabled) => {
+    const nextEnabled = !currentEnabled;
+    setLocalRules((prev) =>
+      prev.map((r) => (r.id === ruleId ? { ...r, enabled: nextEnabled } : r))
+    );
+    fetcher.submit(
+      {
+        intent: "toggle_rule",
+        ruleId,
+        enabled: nextEnabled ? "true" : "false",
+      },
+      { method: "post" }
+    );
+  };
 
   return (
     <s-page heading="Content Moderation" inlineSize="large">
@@ -103,18 +140,37 @@ export default function Filters() {
                   <p className={styles.eyebrow}>Backend protection</p>
                   <h3>Automatic checks</h3>
                 </div>
-                <span>{builtInRules.length} always active</span>
+                <span>{activeBuiltInCount} of {localRules.length} active</span>
               </div>
               <div className={styles.wordList}>
-                {builtInRules.map((rule) => (
-                  <article className={styles.wordCard} key={rule.id}>
+                {localRules.map((rule) => (
+                  <article
+                    className={`${styles.wordCard} ${rule.enabled ? styles.wordCardActive : styles.wordCardDisabled}`}
+                    key={rule.id}
+                  >
                     <div className={styles.wordIdentity}>
-                      <span className={styles.wordIcon}>✓</span>
+                      <span
+                        className={`${styles.wordIcon} ${rule.enabled ? styles.activeWordIcon : styles.inactiveWordIcon}`}
+                      >
+                        {rule.enabled ? "✓" : "✕"}
+                      </span>
                       <div>
-                        <small>Always active</small>
+                        <small className={rule.enabled ? styles.statusActive : styles.statusDisabled}>
+                          {rule.enabled ? "Active check" : "Disabled"}
+                        </small>
                         <strong>{rule.label}</strong>
                         <p>{rule.description}</p>
                       </div>
+                    </div>
+                    <div className={styles.switchWrapper}>
+                      <label className={styles.switchLabel} aria-label={`Toggle ${rule.label}`}>
+                        <input
+                          type="checkbox"
+                          checked={rule.enabled}
+                          onChange={() => handleToggle(rule.id, rule.enabled)}
+                        />
+                        <span className={styles.slider} />
+                      </label>
                     </div>
                   </article>
                 ))}
@@ -191,8 +247,17 @@ export default function Filters() {
                 </li>
               </ol>
               <div className={styles.sideStatus}>
-                <span className={styles.statusDot} />
-                Automatic moderation is active
+                <span
+                  className={styles.statusDot}
+                  style={
+                    activeBuiltInCount > 0
+                      ? {}
+                      : { background: "#94a3b8", boxShadow: "0 0 0 4px rgba(148, 163, 184, 0.15)" }
+                  }
+                />
+                {activeBuiltInCount > 0
+                  ? "Automatic moderation is active"
+                  : "Automatic checks are paused"}
               </div>
             </div>
           </s-section>

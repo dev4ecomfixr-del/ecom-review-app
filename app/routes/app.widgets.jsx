@@ -135,6 +135,7 @@ export default function Widgets() {
   const [reviewPreviewDevice, setReviewPreviewDevice] = useState("desktop");
   const [videoPreviewPage, setVideoPreviewPage] = useState(0);
   const [videoPreviewDevice, setVideoPreviewDevice] = useState("desktop");
+  const [badgePreviewDevice, setBadgePreviewDevice] = useState("desktop");
   const videoStories = [
     ["Ava Smith", "#bdd8cf"], ["Melania Green", "#b98d6a"],
     ["Sarah Mansfield", "#d8c8a4"], ["Elena Petrova", "#8da4ae"],
@@ -445,42 +446,70 @@ export default function Widgets() {
               !canUseStarBadge ? styles.lockedPanel : ""
             }`}
           >
-            <span className={styles.panelLabel}>Live style preview</span>
-            <div
-              className={`${styles.badgePreview} ${
-                settings.badgeStyle === "style-2" ? styles.badgeStyleTwo : ""
-              } ${settings.badgeStyle === "style-3" ? styles.badgeStyleThree : ""}`}
-              data-badge-preview-style={settings.badgeStyle}
-              style={{ justifyContent: settings.alignment }}
-            >
-              <span
-                className={styles.previewStars}
-                style={{
-                  color: settings.starColor,
-                  fontSize: `${settings.starSize}px`,
-                }}
+            <div className={styles.panelHeaderRow}>
+              <span className={styles.panelLabel}>Live style preview</span>
+              <div className={styles.deviceButtons}>
+                <button
+                  aria-label="Desktop preview"
+                  aria-pressed={badgePreviewDevice === "desktop"}
+                  className={badgePreviewDevice === "desktop" ? styles.activeDevice : ""}
+                  onClick={() => setBadgePreviewDevice("desktop")}
+                  type="button"
+                >
+                  <span aria-hidden="true" className={styles.desktopIcon} />
+                  Desktop
+                </button>
+                <button
+                  aria-label="Mobile preview"
+                  aria-pressed={badgePreviewDevice === "mobile"}
+                  className={badgePreviewDevice === "mobile" ? styles.activeDevice : ""}
+                  onClick={() => setBadgePreviewDevice("mobile")}
+                  type="button"
+                >
+                  <span aria-hidden="true" className={styles.mobileIcon} />
+                  Mobile
+                </button>
+              </div>
+            </div>
+            <div className={`${styles.badgeStage} ${badgePreviewDevice === "mobile" ? styles.badgeStageMobile : ""}`}>
+              <div
+                className={`${styles.badgePreview} ${
+                  settings.badgeStyle === "style-2" ? styles.badgeStyleTwo : ""
+                } ${settings.badgeStyle === "style-3" ? styles.badgeStyleThree : ""} ${
+                  badgePreviewDevice === "mobile" ? styles.badgePreviewMobile : ""
+                }`}
+                data-badge-preview-style={settings.badgeStyle}
+                style={{ justifyContent: settings.alignment }}
               >
-                ★★★★★
-              </span>
-              <strong
-                data-shine-text="4.9/5 ratings"
-                style={{
-                  color: settings.textColor,
-                  fontSize: `${settings.fontSize}px`,
-                }}
-              >
-                4.9/5 ratings
-              </strong>
-              <em
-                data-shine-text="based on 12,000+ customers"
-                className={!settings.showDivider ? styles.noDivider : ""}
-                style={{
-                  color: settings.mutedTextColor,
-                  fontSize: `${Math.round(settings.fontSize * 0.62)}px`,
-                }}
-              >
-                based on 12,000+ customers
-              </em>
+                <span
+                  className={styles.previewStars}
+                  style={{
+                    color: settings.starColor,
+                    fontSize: `${settings.starSize}px`,
+                  }}
+                >
+                  ★★★★★
+                </span>
+                <strong
+                  data-shine-text="4.9/5 ratings"
+                  style={{
+                    color: settings.textColor,
+                    fontSize: `${settings.fontSize}px`,
+                  }}
+                >
+                  4.9/5 ratings
+                </strong>
+                <em
+                  data-shine-text="based on 12,000+ customers"
+                  className={!settings.showDivider ? styles.noDivider : ""}
+                  style={{
+                    color: settings.mutedTextColor,
+                    fontSize: `${Math.round(settings.fontSize * 0.62)}px`,
+                  }}
+                >
+                  based on 12,000+ customers
+                </em>
+              </div>
             </div>
           </div>
 

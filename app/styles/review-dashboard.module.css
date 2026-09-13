@@ -506,6 +506,50 @@
 }
 .merchantReply span { color: #0f6f54; font-size: 11px; font-weight: 850; text-transform: uppercase; }
 .merchantReply p { margin: 5px 0 0; color: #334155; line-height: 1.5; }
+
+.reviewPhotos {
+  margin: 14px 0;
+  display: grid;
+  gap: 8px;
+}
+
+.reviewPhotos > span {
+  color: #0f6f54;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.photoGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.photoLink {
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.photoLink:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+}
+
+.photoThumb {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  background: #f1f5f9;
+}
+
 .replyEditor { margin: 12px 0 16px; }
 .replyEditor summary { width: max-content; color: #0f6f54; cursor: pointer; font-size: 13px; font-weight: 800; }
 .replyEditor form { display: grid; gap: 9px; margin-top: 10px; padding: 14px; border: 1px solid rgba(15,123,93,.14); border-radius: 8px; background: #f8fbfa; }

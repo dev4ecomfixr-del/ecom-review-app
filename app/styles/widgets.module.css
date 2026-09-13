@@ -845,6 +845,29 @@
   background: #ffffff;
 }
 .previewToolbar > span { color: #0f7b5d; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.panelHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.badgeStage {
+  width: 100%;
+  transition: all 200ms ease;
+}
+.badgeStageMobile {
+  max-width: 380px;
+  margin: 0 auto;
+  padding: 16px;
+  border: 1px dashed rgba(15, 123, 93, 0.28);
+  border-radius: 14px;
+  background: #fafdfb;
+}
+.badgePreviewMobile {
+  transform: scale(0.94);
+  transform-origin: center;
+}
 .deviceButtons { display: flex; gap: 6px; }
 .deviceButtons button {
   display: flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid transparent;

@@ -142,18 +142,121 @@ export const findMatchedFilterWord = async (shop, values) => {
   );
 };
 
+let isModerationTableEnsured = false;
+async function ensureModerationSettingTable() {
+  if (isModerationTableEnsured) return;
+  try {
+    await db.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS ModerationSetting (
+        shop TEXT PRIMARY KEY,
+        blockEmail INTEGER NOT NULL DEFAULT 1,
+        blockPhone INTEGER NOT NULL DEFAULT 1,
+        blockLinks INTEGER NOT NULL DEFAULT 1,
+        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    isModerationTableEnsured = true;
+  } catch (e) {
+    // ignore
+  }
+}
+
+export const getModerationSettings = async (shop) => {
+  await ensureModerationSettingTable();
+  try {
+    if (db.moderationSetting) {
+      const setting = await db.moderationSetting.findUnique({ where: { shop } });
+      if (setting) {
+        return {
+          EMAIL_ADDRESS: Boolean(setting.blockEmail),
+          PHONE_NUMBER: Boolean(setting.blockPhone),
+          SUSPICIOUS_LINK: Boolean(setting.blockLinks),
+        };
+      }
+    } else {
+      const rows = await db.$queryRaw`
+        SELECT blockEmail, blockPhone, blockLinks FROM ModerationSetting WHERE shop = ${shop} LIMIT 1
+      `;
+      if (rows && rows.length > 0) {
+        return {
+          EMAIL_ADDRESS: Boolean(rows[0].blockEmail),
+          PHONE_NUMBER: Boolean(rows[0].blockPhone),
+          SUSPICIOUS_LINK: Boolean(rows[0].blockLinks),
+        };
+      }
+    }
+  } catch (err) {
+    console.error("Error getting moderation settings:", err);
+  }
+  return {
+    EMAIL_ADDRESS: true,
+    PHONE_NUMBER: true,
+    SUSPICIOUS_LINK: true,
+  };
+};
+
+export const updateModerationRule = async (shop, ruleId, enabled) => {
+  await ensureModerationSettingTable();
+  const current = await getModerationSettings(shop);
+  const updated = {
+    ...current,
+    [ruleId]: Boolean(enabled),
+  };
+
+  const blockEmail = updated.EMAIL_ADDRESS ? 1 : 0;
+  const blockPhone = updated.PHONE_NUMBER ? 1 : 0;
+  const blockLinks = updated.SUSPICIOUS_LINK ? 1 : 0;
+
+  try {
+    if (db.moderationSetting) {
+      await db.moderationSetting.upsert({
+        where: { shop },
+        create: {
+          shop,
+          blockEmail: Boolean(blockEmail),
+          blockPhone: Boolean(blockPhone),
+          blockLinks: Boolean(blockLinks),
+        },
+        update: {
+          blockEmail: Boolean(blockEmail),
+          blockPhone: Boolean(blockPhone),
+          blockLinks: Boolean(blockLinks),
+        },
+      });
+    } else {
+      await db.$executeRaw`
+        INSERT INTO ModerationSetting (shop, blockEmail, blockPhone, blockLinks, createdAt, updatedAt)
+        VALUES (${shop}, ${blockEmail}, ${blockPhone}, ${blockLinks}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT(shop) DO UPDATE SET
+          blockEmail = ${blockEmail},
+          blockPhone = ${blockPhone},
+          blockLinks = ${blockLinks},
+          updatedAt = CURRENT_TIMESTAMP
+      `;
+    }
+  } catch (err) {
+    console.error("Error updating moderation setting:", err);
+  }
+
+  return updated;
+};
+
 export const detectModerationReason = async (shop, values) => {
   const content = values.filter(Boolean).join(" ");
   const matchedFilterWord = await findMatchedFilterWord(shop, values);
 
   if (matchedFilterWord) return "CUSTOM_MODERATION_TERM";
-  if (/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(content)) {
+
+  const settings = await getModerationSettings(shop);
+
+  if (settings.EMAIL_ADDRESS && /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(content)) {
     return "EMAIL_ADDRESS";
   }
-  if (/(?:\+?\d[\s().-]*){8,}/.test(content)) {
+  if (settings.PHONE_NUMBER && /(?:\+?\d[\s().-]*){8,}/.test(content)) {
     return "PHONE_NUMBER";
   }
-  if (/\b(?:https?:\/\/|www\.)\S+/i.test(content)) {
+  if (settings.SUSPICIOUS_LINK && /\b(?:https?:\/\/|www\.)\S+/i.test(content)) {
     return "SUSPICIOUS_LINK";
   }
 

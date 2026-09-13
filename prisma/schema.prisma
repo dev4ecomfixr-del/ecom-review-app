@@ -140,3 +140,12 @@ model GeneratedCoupon {
   @@index([shop, status])
   @@index([shop, expiresAt])
 }
+
+model ModerationSetting {
+  shop            String   @id
+  blockEmail      Boolean  @default(true)
+  blockPhone      Boolean  @default(true)
+  blockLinks      Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
