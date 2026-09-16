@@ -10,7 +10,7 @@
     "config:use": "shopify app config use",
     "env": "shopify app env",
     "prestart": "fuser -k 5005/tcp || true",
-   "start": "PORT=5005 NODE_OPTIONS=\"--env-file=.env\" react-router-serve ./build/server/index.js",
+    "start": "PORT=5005 react-router-serve ./build/server/index.js",
     "docker-start": "npm run setup && npm run start",
     "setup": "prisma generate && prisma migrate deploy",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
