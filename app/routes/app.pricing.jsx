@@ -61,8 +61,15 @@ const formatBillingError = (error) => {
   return error.message || "Shopify billing could not be started.";
 };
 
-const isCustomAppBillingError = (error) =>
-  formatBillingError(error).toLowerCase().includes("custom apps cannot use");
+const isCustomAppBillingError = (error) => {
+  const msg = formatBillingError(error).toLowerCase();
+  return (
+    msg.includes("custom apps cannot use") ||
+    msg.includes("custom app") ||
+    msg.includes("single merchant") ||
+    msg.includes("distribution")
+  );
+};
 
 export const loader = async ({ request }) => {
   const { admin, billing, session } = await authenticate.admin(request);
@@ -74,33 +81,44 @@ export const loader = async ({ request }) => {
   let currentPlanCode = planCode || DEFAULT_PLAN.code;
   let activePaidPlan = null;
 
-  const billingCheck = await billing.check({
-    plans: PAID_PLAN_CODES,
-    isTest: isBillingTestMode(),
-  });
-  activePaidPlan = getActivePaidPlan(billingCheck.appSubscriptions);
+  try {
+    const billingCheck = await billing.check({
+      plans: PAID_PLAN_CODES,
+      isTest: isBillingTestMode(),
+    });
+    activePaidPlan = getActivePaidPlan(billingCheck.appSubscriptions);
 
-  if (activePaidPlan && currentPlanCode !== activePaidPlan) {
-    await setShopPlanCode(session.shop, activePaidPlan);
-    currentPlanCode = activePaidPlan;
-  }
+    if (activePaidPlan && currentPlanCode !== activePaidPlan) {
+      await setShopPlanCode(session.shop, activePaidPlan);
+      currentPlanCode = activePaidPlan;
+    }
 
-  if (PAID_PLAN_CODES.includes(currentPlanCode) && !activePaidPlan) {
-    await setShopPlanCode(session.shop, DEFAULT_PLAN.code);
-    currentPlanCode = DEFAULT_PLAN.code;
-  }
+    if (PAID_PLAN_CODES.includes(currentPlanCode) && !activePaidPlan) {
+      await setShopPlanCode(session.shop, DEFAULT_PLAN.code);
+      currentPlanCode = DEFAULT_PLAN.code;
+    }
 
-  if (
-    billingPlan &&
-    PAID_PLAN_CODES.includes(billingPlan) &&
-    activePaidPlan !== billingPlan
-  ) {
-    currentPlanCode = DEFAULT_PLAN.code;
+    if (
+      billingPlan &&
+      PAID_PLAN_CODES.includes(billingPlan) &&
+      activePaidPlan !== billingPlan
+    ) {
+      currentPlanCode = DEFAULT_PLAN.code;
+    }
+  } catch (error) {
+    console.warn(
+      "Shopify billing check skipped (custom app or billing unavailable):",
+      error?.message || error,
+    );
   }
 
   const currentPlan = getPlanByCode(currentPlanCode);
 
-  await syncStarBadgeAvailability(admin, currentPlan.code);
+  try {
+    await syncStarBadgeAvailability(admin, currentPlan.code);
+  } catch (e) {
+    console.warn("Failed to sync star badge availability:", e?.message || e);
+  }
 
   return {
     currentPlanCode: currentPlan.code,
@@ -138,11 +156,13 @@ export const action = async ({ request }) => {
       });
 
       if (isCustomAppBillingError(error)) {
-        return {
-          error:
-            "Shopify Billing is unavailable because this app is configured for custom distribution. Use the App Store-distributed app configuration to test paid plans.",
-          ok: false,
-        };
+        await setShopPlanCode(session.shop, plan);
+        try {
+          await syncStarBadgeAvailability(admin, plan);
+        } catch (e) {
+          console.warn("Failed to sync star badge:", e?.message || e);
+        }
+        return { ok: true, plan };
       }
 
       return {
@@ -153,24 +173,32 @@ export const action = async ({ request }) => {
   }
 
   if (plan === DEFAULT_PLAN.code) {
-    const billingCheck = await billing.check({
-      plans: PAID_PLAN_CODES,
-      isTest: isBillingTestMode(),
-    });
+    try {
+      const billingCheck = await billing.check({
+        plans: PAID_PLAN_CODES,
+        isTest: isBillingTestMode(),
+      });
 
-    await Promise.all(
-      billingCheck.appSubscriptions.map((subscription) =>
-        billing.cancel({
-          subscriptionId: subscription.id,
-          isTest: isBillingTestMode(),
-          prorate: true,
-        }),
-      ),
-    );
+      await Promise.all(
+        billingCheck.appSubscriptions.map((subscription) =>
+          billing.cancel({
+            subscriptionId: subscription.id,
+            isTest: isBillingTestMode(),
+            prorate: true,
+          }),
+        ),
+      );
+    } catch (error) {
+      console.warn("Failed to cancel subscription during plan change:", error?.message || error);
+    }
   }
 
   await setShopPlanCode(session.shop, plan);
-  await syncStarBadgeAvailability(admin, plan);
+  try {
+    await syncStarBadgeAvailability(admin, plan);
+  } catch (e) {
+    console.warn("Failed to sync star badge:", e?.message || e);
+  }
 
   return { ok: true, plan };
 };
