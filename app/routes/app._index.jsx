@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
@@ -74,10 +74,10 @@ export const loader = async ({ request }) => {
     shop: session.shop,
     reviews,
     stats: {
-      totalReviews,
-      publishedReviews,
-      repliedReviews,
-      averageRating: averageRating._avg.rating || 0,
+      totalReviews: totalReviews || 0,
+      publishedReviews: publishedReviews || 0,
+      repliedReviews: repliedReviews || 0,
+      averageRating: averageRating?._avg?.rating || 0,
     },
     plan: usage.plan,
     planUsageLabel: usage.usageLabel,
@@ -101,7 +101,7 @@ export const action = async ({ request }) => {
         repliedAt: merchantReply ? new Date() : null,
       },
     });
-    return { ok: true };
+    return { ok: true, reviewId, merchantReply };
   }
 
   return { ok: true };
@@ -111,28 +111,38 @@ export default function Dashboard() {
   const { reviews, stats, needsPrismaRestart, plan, planUsageLabel, usage } =
     useLoaderData();
   const fetcher = useFetcher();
+  const [editingReplyId, setEditingReplyId] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState("all");
   const [productSearch, setProductSearch] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
-  const averageRating = stats.averageRating.toFixed(1);
-  const latestReview = reviews[0];
+
+  useEffect(() => {
+    if (fetcher.data?.ok && fetcher.state === "idle") {
+      setEditingReplyId(null);
+    }
+  }, [fetcher.data, fetcher.state]);
+
+  const totalReviewsCount = stats?.totalReviews || 0;
+  const repliedReviewsCount = stats?.repliedReviews || 0;
+  const averageRating = Number(stats?.averageRating || 0).toFixed(1);
+  const latestReview = reviews?.[0];
   const remainingReviews =
     usage?.remainingReviews !== undefined
       ? usage.remainingReviews
-      : plan.reviewLimit === null
+      : plan?.reviewLimit === null
       ? null
-      : Math.max(plan.reviewLimit - stats.totalReviews, 0);
+      : Math.max((plan?.reviewLimit || 0) - totalReviewsCount, 0);
   const chartValues = [
     {
       color: "#10b981",
       label: "Replied",
-      value: stats.repliedReviews,
+      value: repliedReviewsCount,
     },
     {
       color: "#dbe4e0",
       label: "Awaiting reply",
-      value: Math.max(stats.totalReviews - stats.repliedReviews, 0),
+      value: Math.max(totalReviewsCount - repliedReviewsCount, 0),
     },
   ];
   let chartOffset = 0;
@@ -485,31 +495,83 @@ export default function Dashboard() {
                         </div>
                       </div>
                     ) : null}
-                    <details className={styles.replyEditor}>
-                      <summary>
+                    {editingReplyId === review.id ? (
+                      <div className={styles.replyEditorBox}>
+                        <fetcher.Form method="post">
+                          <input type="hidden" name="reviewId" value={review.id} />
+                          <input type="hidden" name="intent" value="save-reply" />
+                          <div className={styles.replyEditorHeader}>
+                            <label htmlFor={`reply-${review.id}`}>Public store reply</label>
+                            <button
+                              type="button"
+                              className={styles.closeEditorBtn}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingReplyId(null);
+                              }}
+                              aria-label="Close"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          <textarea
+                            defaultValue={review.merchantReply || ""}
+                            id={`reply-${review.id}`}
+                            maxLength="1000"
+                            name="merchantReply"
+                            placeholder="Thank the customer or answer their feedback…"
+                            rows="3"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <div className={styles.replyEditorActions}>
+                            <button
+                              type="submit"
+                              className={styles.saveReplyBtn}
+                              disabled={fetcher.state === "submitting"}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {fetcher.state === "submitting" ? "Saving..." : "Save reply"}
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.cancelReplyBtn}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingReplyId(null);
+                              }}
+                            >
+                              Cancel
+                            </button>
+                            {review.merchantReply ? (
+                              <button
+                                type="submit"
+                                name="merchantReply"
+                                value=""
+                                className={styles.deleteReplyBtn}
+                                disabled={fetcher.state === "submitting"}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                Remove reply
+                              </button>
+                            ) : null}
+                          </div>
+                        </fetcher.Form>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.respondToggleBtn}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setEditingReplyId(review.id);
+                        }}
+                      >
                         <span>↳</span>
                         {review.merchantReply ? "Edit store response" : "Respond to customer"}
-                      </summary>
-                      <fetcher.Form method="post">
-                        <input type="hidden" name="reviewId" value={review.id} />
-                        <input type="hidden" name="intent" value="save-reply" />
-                        <label htmlFor={`reply-${review.id}`}>Public store reply</label>
-                        <textarea
-                          defaultValue={review.merchantReply || ""}
-                          id={`reply-${review.id}`}
-                          maxLength="1000"
-                          name="merchantReply"
-                          placeholder="Thank the customer or answer their feedback…"
-                          rows="3"
-                        />
-                        <div>
-                          <s-button type="submit" variant="primary">Save reply</s-button>
-                          {review.merchantReply ? (
-                            <span>Clear the text and save to remove the reply.</span>
-                          ) : null}
-                        </div>
-                      </fetcher.Form>
-                    </details>
+                      </button>
+                    )}
                     <div className={styles.expandedFooter}>
                       <span>{review.customerEmail || "No customer email"}</span>
                       <span>Reply publicly to customer feedback</span>
