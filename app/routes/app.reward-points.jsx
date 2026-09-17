@@ -81,16 +81,6 @@ export const action = async ({ request }) => {
     const formData = await request.formData();
     const intent = formData.get("intent");
 
-    if (intent === "saveSettings") {
-      try {
-        const rawSettings = JSON.parse(String(formData.get("settings") || "{}"));
-        const updated = await saveRewardPointSettings(session.shop, rawSettings);
-        return { ok: true, message: "Settings saved successfully", settings: updated };
-      } catch (error) {
-        return { ok: false, error: error?.message || "Failed to save settings" };
-      }
-    }
-
     if (intent === "adjustPoints") {
       const customerEmail = String(formData.get("customerEmail") || "");
       const points = Number(formData.get("points") || 0);
@@ -121,7 +111,14 @@ export const action = async ({ request }) => {
       }
     }
 
-    return { ok: true };
+    // Default intent or saveSettings
+    try {
+      const rawSettings = JSON.parse(String(formData.get("settings") || "{}"));
+      const updated = await saveRewardPointSettings(session.shop, rawSettings);
+      return { ok: true, message: "Settings saved successfully", settings: updated };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Failed to save settings" };
+    }
   } catch (error) {
     console.error("Action error in reward-points:", error);
     return { ok: false, error: error?.message || "Server action failed" };
