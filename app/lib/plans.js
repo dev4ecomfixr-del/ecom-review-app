@@ -73,15 +73,21 @@ export const PLAN_RANKS = {
 
 export const getBillingCycleWindow = (referenceDate = new Date()) => {
   const now = new Date();
-  const ref = new Date(referenceDate || now);
-  const dayOfMonth = Math.min(ref.getDate(), 28);
+  let ref = referenceDate ? new Date(referenceDate) : now;
+  if (isNaN(ref.getTime())) {
+    ref = now;
+  }
+  const dayOfMonth = Math.min(Math.max(ref.getDate() || 1, 1), 28);
 
   let cycleStart = new Date(now.getFullYear(), now.getMonth(), dayOfMonth);
-  if (cycleStart > now) {
+  if (isNaN(cycleStart.getTime()) || cycleStart > now) {
     cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, dayOfMonth);
   }
 
-  const cycleEnd = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + 1, dayOfMonth);
+  let cycleEnd = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + 1, dayOfMonth);
+  if (isNaN(cycleEnd.getTime())) {
+    cycleEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  }
 
   const formatter = new Intl.DateTimeFormat("en", {
     month: "short",

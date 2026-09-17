@@ -7,12 +7,16 @@ import { DEFAULT_PLAN, getPlanUsageLabel } from "../lib/plans";
 import { getShopMonthlyUsage } from "../lib/shop-plans.server";
 import styles from "../styles/review-dashboard.module.css";
 
-const formatDate = (date) =>
-  new Intl.DateTimeFormat("en", {
+const formatDate = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en", {
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(new Date(date));
+  }).format(d);
+};
 
 const getRatingStars = (rating) =>
   `${"★".repeat(rating)}${"☆".repeat(5 - rating)}`;
@@ -23,14 +27,78 @@ const getCustomerInitials = (name) => {
 };
 
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
-  const reviewDelegate = db.review;
+  try {
+    const { session } = await authenticate.admin(request);
+    const reviewDelegate = db.review;
 
-  if (!reviewDelegate) {
+    if (!reviewDelegate) {
+      return {
+        shop: session.shop,
+        reviews: [],
+        needsPrismaRestart: true,
+        stats: {
+          totalReviews: 0,
+          publishedReviews: 0,
+          repliedReviews: 0,
+          averageRating: 0,
+        },
+        plan: DEFAULT_PLAN,
+        planUsageLabel: getPlanUsageLabel(DEFAULT_PLAN, 0),
+        usage: null,
+      };
+    }
+
+    const [
+      reviews,
+      totalReviews,
+      publishedReviews,
+      repliedReviews,
+      averageRating,
+      usage,
+    ] = await Promise.all([
+      reviewDelegate.findMany({
+        where: { shop: session.shop },
+        orderBy: { createdAt: "desc" },
+        take: 25,
+      }).catch((e) => {
+        console.warn("findMany error:", e?.message);
+        return [];
+      }),
+      reviewDelegate.count({ where: { shop: session.shop } }).catch(() => 0),
+      reviewDelegate.count({
+        where: { shop: session.shop, status: "PUBLISHED" },
+      }).catch(() => 0),
+      reviewDelegate.count({
+        where: { shop: session.shop, merchantReply: { not: null } },
+      }).catch(() => 0),
+      reviewDelegate.aggregate({
+        where: { shop: session.shop, status: "PUBLISHED" },
+        _avg: { rating: true },
+      }).catch(() => ({ _avg: { rating: 0 } })),
+      getShopMonthlyUsage(session.shop).catch((e) => {
+        console.warn("getShopMonthlyUsage error:", e?.message);
+        return null;
+      }),
+    ]);
+
     return {
       shop: session.shop,
+      reviews: reviews || [],
+      stats: {
+        totalReviews: totalReviews || 0,
+        publishedReviews: publishedReviews || 0,
+        repliedReviews: repliedReviews || 0,
+        averageRating: averageRating?._avg?.rating || 0,
+      },
+      plan: usage?.plan || DEFAULT_PLAN,
+      planUsageLabel: usage?.usageLabel || getPlanUsageLabel(DEFAULT_PLAN, 0),
+      usage,
+    };
+  } catch (error) {
+    console.error("Dashboard loader caught error:", error);
+    return {
+      shop: "",
       reviews: [],
-      needsPrismaRestart: true,
       stats: {
         totalReviews: 0,
         publishedReviews: 0,
@@ -42,69 +110,33 @@ export const loader = async ({ request }) => {
       usage: null,
     };
   }
-
-  const [
-    reviews,
-    totalReviews,
-    publishedReviews,
-    repliedReviews,
-    averageRating,
-    usage,
-  ] = await Promise.all([
-    reviewDelegate.findMany({
-      where: { shop: session.shop },
-      orderBy: { createdAt: "desc" },
-      take: 25,
-    }),
-    reviewDelegate.count({ where: { shop: session.shop } }),
-    reviewDelegate.count({
-      where: { shop: session.shop, status: "PUBLISHED" },
-    }),
-    reviewDelegate.count({
-      where: { shop: session.shop, merchantReply: { not: null } },
-    }),
-    reviewDelegate.aggregate({
-      where: { shop: session.shop, status: "PUBLISHED" },
-      _avg: { rating: true },
-    }),
-    getShopMonthlyUsage(session.shop),
-  ]);
-
-  return {
-    shop: session.shop,
-    reviews: reviews || [],
-    stats: {
-      totalReviews: totalReviews || 0,
-      publishedReviews: publishedReviews || 0,
-      repliedReviews: repliedReviews || 0,
-      averageRating: averageRating?._avg?.rating || 0,
-    },
-    plan: usage?.plan || DEFAULT_PLAN,
-    planUsageLabel: usage?.usageLabel || getPlanUsageLabel(DEFAULT_PLAN, 0),
-    usage,
-  };
 };
 
 export const action = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
-  const reviewDelegate = db.review;
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-  const reviewId = formData.get("reviewId");
+  try {
+    const { session } = await authenticate.admin(request);
+    const reviewDelegate = db.review;
+    const formData = await request.formData();
+    const intent = formData.get("intent");
+    const reviewId = formData.get("reviewId");
 
-  if (intent === "save-reply" && reviewId && reviewDelegate) {
-    const merchantReply = String(formData.get("merchantReply") || "").trim().slice(0, 1000);
-    await reviewDelegate.updateMany({
-      where: { id: String(reviewId), shop: session.shop },
-      data: {
-        merchantReply: merchantReply || null,
-        repliedAt: merchantReply ? new Date() : null,
-      },
-    });
-    return { ok: true, reviewId, merchantReply };
+    if (intent === "save-reply" && reviewId && reviewDelegate) {
+      const merchantReply = String(formData.get("merchantReply") || "").trim().slice(0, 1000);
+      await reviewDelegate.updateMany({
+        where: { id: String(reviewId), shop: session.shop },
+        data: {
+          merchantReply: merchantReply || null,
+          repliedAt: merchantReply ? new Date() : null,
+        },
+      });
+      return { ok: true, reviewId, merchantReply };
+    }
+
+    return { ok: true };
+  } catch (error) {
+    console.error("Dashboard action caught error:", error);
+    return { ok: false, error: error?.message || "Failed to save reply" };
   }
-
-  return { ok: true };
 };
 
 export default function Dashboard() {
