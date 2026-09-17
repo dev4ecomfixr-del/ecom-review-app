@@ -1,0 +1,158 @@
+<div
+  class="rl-reward-points-root"
+  data-shop="{{ shop.permanent_domain | escape }}"
+  data-customer-email="{% if customer %}{{ customer.email | escape }}{% endif %}"
+  data-customer-name="{% if customer %}{{ customer.name | escape }}{% endif %}"
+  data-position="{{ block.settings.position }}"
+  data-primary-color="{{ block.settings.primary_color }}"
+  data-app-url="{{ block.settings.app_url }}"
+  style="--rl-reward-primary: {{ block.settings.primary_color }}; --rl-reward-text: {{ block.settings.text_color }};"
+>
+  {% if block.settings.enable_floating_launcher %}
+    <!-- Floating Rewards Launcher Button -->
+    <button
+      type="button"
+      class="rl-reward-launcher rl-launcher-{{ block.settings.position }}"
+      aria-label="Open Reward Points"
+    >
+      <span class="rl-launcher-icon">🎁</span>
+      <span class="rl-launcher-text">{{ block.settings.launcher_text }}</span>
+      <span class="rl-launcher-badge" style="display: none;">0</span>
+    </button>
+  {% endif %}
+
+  <!-- Reward Points Popup Modal / Drawer -->
+  <div class="rl-reward-modal-overlay" style="display: none;">
+    <div class="rl-reward-modal rl-modal-{{ block.settings.position }}">
+      <!-- Modal Header -->
+      <div class="rl-modal-header">
+        <div class="rl-header-brand">
+          <span class="rl-brand-icon">🎁</span>
+          <div>
+            <h3 class="rl-brand-title">{{ block.settings.header_title }}</h3>
+            <p class="rl-brand-subtitle">{{ block.settings.header_subtitle }}</p>
+          </div>
+        </div>
+        <button type="button" class="rl-modal-close" aria-label="Close">✕</button>
+      </div>
+
+      <!-- Customer Balance Card -->
+      <div class="rl-balance-card">
+        <div class="rl-balance-info">
+          <span class="rl-balance-label">Your Reward Balance</span>
+          <div class="rl-balance-number">
+            <strong class="rl-points-count">...</strong>
+            <span class="rl-points-unit">Points</span>
+          </div>
+          <span class="rl-customer-tag">{% if customer %}{{ customer.email }}{% else %}Guest Account{% endif %}</span>
+        </div>
+      </div>
+
+      <!-- Guest Email Input if not logged in -->
+      {% unless customer %}
+        <div class="rl-guest-login-box">
+          <p>Enter your email to view your reward points balance and redeem coupons:</p>
+          <div class="rl-email-input-group">
+            <input type="email" class="rl-guest-email" placeholder="Your email address" />
+            <button type="button" class="rl-lookup-btn">Check</button>
+          </div>
+        </div>
+      {% endunless %}
+
+      <!-- Modal Body Tabs / Content -->
+      <div class="rl-modal-body">
+        <!-- Earning Info -->
+        <div class="rl-earn-banner">
+          <span class="rl-earn-icon">⚡</span>
+          <p class="rl-earn-text">Earn points on every purchase to unlock exclusive discount coupons.</p>
+        </div>
+
+        <!-- Available Redemption Tiers -->
+        <div class="rl-section-title">
+          <h4>Redeem for Discounts</h4>
+        </div>
+        <div class="rl-tiers-container">
+          <div class="rl-loading-spinner">Loading rewards...</div>
+        </div>
+
+        <!-- Active Unused Coupons Section -->
+        <div class="rl-active-coupons-section" style="display: none;">
+          <div class="rl-section-title">
+            <h4>Your Active Reward Coupons</h4>
+          </div>
+          <div class="rl-coupons-container"></div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="rl-modal-footer">
+        <span>Powered by ReviewLift Rewards</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="{{ 'reward-points.css' | asset_url }}">
+<script src="{{ 'reward-points.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Reward Points Widget",
+  "target": "body",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enable_floating_launcher",
+      "label": "Enable Floating Rewards Button",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Widget Position",
+      "options": [
+        { "value": "bottom-right", "label": "Bottom Right" },
+        { "value": "bottom-left", "label": "Bottom Left" }
+      ],
+      "default": "bottom-right"
+    },
+    {
+      "type": "text",
+      "id": "launcher_text",
+      "label": "Floating Button Label",
+      "default": "Rewards"
+    },
+    {
+      "type": "text",
+      "id": "header_title",
+      "label": "Modal Header Title",
+      "default": "Loyalty Rewards"
+    },
+    {
+      "type": "text",
+      "id": "header_subtitle",
+      "label": "Modal Header Subtitle",
+      "default": "Earn points & redeem coupons"
+    },
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Brand / Accent Color",
+      "default": "#059669"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Launcher Text Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "text",
+      "id": "app_url",
+      "label": "App Backend URL",
+      "default": "https://review-lift-miki.ecomfixr.com",
+      "info": "URL of your deployed review application"
+    }
+  ]
+}
+{% endschema %}

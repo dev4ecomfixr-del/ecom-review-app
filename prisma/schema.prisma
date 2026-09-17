@@ -140,3 +140,80 @@ model GeneratedCoupon {
   @@index([shop, status])
   @@index([shop, expiresAt])
 }
+
+model RewardPointSetting {
+  shop                String   @id
+  enabled             Boolean  @default(true)
+  pointsPerDollar     Int      @default(1)
+  minSpend            Float    @default(0)
+  pointUnitName       String   @default("Points")
+  redemptionTiersJson String   @default("[{\"points\":100,\"type\":\"FIXED_AMOUNT\",\"value\":5,\"label\":\"$5 off\"},{\"points\":200,\"type\":\"FIXED_AMOUNT\",\"value\":10,\"label\":\"$10 off\"},{\"points\":500,\"type\":\"PERCENTAGE\",\"value\":25,\"label\":\"25% off\"}]")
+  couponLifetimeDays  Int      @default(30)
+  codePrefix          String   @default("RP-")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model CustomerPointAccount {
+  id                  String             @id @default(cuid())
+  shop                String
+  customerEmail       String
+  customerName        String?
+  pointsBalance       Int                @default(0)
+  totalPointsEarned   Int                @default(0)
+  totalPointsRedeemed Int                @default(0)
+  totalSpend          Float              @default(0)
+  orderCount          Int                @default(0)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  transactions        PointTransaction[]
+
+  @@unique([shop, customerEmail])
+  @@index([shop])
+  @@index([shop, pointsBalance])
+}
+
+model PointTransaction {
+  id            String                @id @default(cuid())
+  shop          String
+  customerEmail String
+  accountId     String?
+  orderId       String?
+  orderName     String?
+  points        Int
+  type          String                @default("PURCHASE_EARN")
+  description   String
+  couponCode    String?
+  createdAt     DateTime              @default(now())
+
+  account       CustomerPointAccount? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([shop])
+  @@index([shop, customerEmail])
+  @@index([accountId])
+}
+
+model RedeemedPointCoupon {
+  id                String    @id @default(cuid())
+  shop              String
+  customerEmail     String
+  shopifyDiscountId String
+  code              String
+  pointsSpent       Int
+  discountType      String    @default("FIXED_AMOUNT")
+  discountValue     Float
+  status            String    @default("ACTIVE")
+  expiresAt         DateTime
+  deletedAt         DateTime?
+  deletionError     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([shop, code])
+  @@unique([shop, shopifyDiscountId])
+  @@index([shop, status])
+  @@index([shop, customerEmail])
+  @@index([shop, expiresAt])
+}
+
