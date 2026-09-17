@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useFetcher, useLoaderData } from "react-router";
+import { useFetcher, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
@@ -72,15 +72,15 @@ export const loader = async ({ request }) => {
 
   return {
     shop: session.shop,
-    reviews,
+    reviews: reviews || [],
     stats: {
       totalReviews: totalReviews || 0,
       publishedReviews: publishedReviews || 0,
       repliedReviews: repliedReviews || 0,
       averageRating: averageRating?._avg?.rating || 0,
     },
-    plan: usage.plan,
-    planUsageLabel: usage.usageLabel,
+    plan: usage?.plan || DEFAULT_PLAN,
+    planUsageLabel: usage?.usageLabel || getPlanUsageLabel(DEFAULT_PLAN, 0),
     usage,
   };
 };
@@ -108,8 +108,16 @@ export const action = async ({ request }) => {
 };
 
 export default function Dashboard() {
-  const { reviews, stats, needsPrismaRestart, plan, planUsageLabel, usage } =
-    useLoaderData();
+  const loaderData = useLoaderData() || {};
+  const {
+    reviews = [],
+    stats = { totalReviews: 0, publishedReviews: 0, repliedReviews: 0, averageRating: 0 },
+    needsPrismaRestart = false,
+    plan = DEFAULT_PLAN,
+    planUsageLabel = "",
+    usage = null,
+  } = loaderData;
+  const safeReviews = Array.isArray(reviews) ? reviews : [];
   const fetcher = useFetcher();
   const [editingReplyId, setEditingReplyId] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState("all");
@@ -126,7 +134,7 @@ export default function Dashboard() {
   const totalReviewsCount = stats?.totalReviews || 0;
   const repliedReviewsCount = stats?.repliedReviews || 0;
   const averageRating = Number(stats?.averageRating || 0).toFixed(1);
-  const latestReview = reviews?.[0];
+  const latestReview = safeReviews[0];
   const remainingReviews =
     usage?.remainingReviews !== undefined
       ? usage.remainingReviews
@@ -147,8 +155,8 @@ export default function Dashboard() {
   ];
   let chartOffset = 0;
   const chartSegments = chartValues.map((segment) => {
-    const percent = stats.totalReviews
-      ? (segment.value / stats.totalReviews) * 100
+    const percent = totalReviewsCount
+      ? (segment.value / totalReviewsCount) * 100
       : 0;
     const segmentWithOffset = {
       ...segment,
@@ -160,7 +168,7 @@ export default function Dashboard() {
 
     return segmentWithOffset;
   });
-  const chartStops = stats.totalReviews
+  const chartStops = totalReviewsCount
     ? chartSegments
         .map((segment) => {
           const start = segment.offset.toFixed(2);
@@ -173,19 +181,19 @@ export default function Dashboard() {
   const metricCards = [
     {
       label: "Total reviews",
-      value: stats.totalReviews,
+      value: totalReviewsCount,
       detail: "All submissions",
       tone: "coral",
     },
     {
       label: "Published",
-      value: stats.publishedReviews,
+      value: stats?.publishedReviews || 0,
       detail: "Visible on storefront",
       tone: "emerald",
     },
     {
       label: "Store replies",
-      value: stats.repliedReviews,
+      value: repliedReviewsCount,
       detail: "Public responses",
       tone: "sky",
     },
@@ -197,11 +205,11 @@ export default function Dashboard() {
     },
   ];
   const getReviewProductKey = (review) =>
-    review.productId || review.productHandle || review.productTitle || "storewide";
+    review?.productId || review?.productHandle || review?.productTitle || "storewide";
   const getReviewProductLabel = (review) =>
-    review.productTitle || review.productHandle || "Storewide";
+    review?.productTitle || review?.productHandle || "Storewide";
   const productFilterMap = new Map();
-  reviews.forEach((review) => {
+  safeReviews.forEach((review) => {
     const key = getReviewProductKey(review);
     const current = productFilterMap.get(key);
     productFilterMap.set(key, {
@@ -219,7 +227,7 @@ export default function Dashboard() {
         product.label.toLowerCase().includes(normalizedProductSearch),
       )
     : productFilters;
-  const filteredReviews = reviews
+  const filteredReviews = safeReviews
     .filter((review) =>
       selectedProduct === "all"
         ? true
@@ -497,7 +505,7 @@ export default function Dashboard() {
                     ) : null}
                     {editingReplyId === review.id ? (
                       <div className={styles.replyEditorBox}>
-                        <fetcher.Form method="post">
+                        <fetcher.Form method="post" action="/app?index">
                           <input type="hidden" name="reviewId" value={review.id} />
                           <input type="hidden" name="intent" value="save-reply" />
                           <div className={styles.replyEditorHeader}>
@@ -610,7 +618,8 @@ export default function Dashboard() {
         ) : (
           <div className={styles.activityPanel}>
             <span>Recent activity</span>
-            <p>No activity yet.</p>
+            <h3>No review activity yet</h3>
+            <p>Customer submissions and store replies will be summarized here.</p>
           </div>
         )}
           </s-section>
@@ -658,6 +667,23 @@ export default function Dashboard() {
           </s-section>
         </aside>
       </div>
+    </s-page>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  return (
+    <s-page heading="Dashboard">
+      <s-section>
+        <div style={{ padding: "20px", color: "#b91c1c", background: "#fef2f2", borderRadius: "8px", border: "1px solid #fecaca" }}>
+          <h3 style={{ margin: "0 0 8px 0", fontSize: "16px" }}>Dashboard Notice</h3>
+          <p style={{ margin: "0 0 12px 0", fontSize: "14px" }}>
+            {error?.message || "An unexpected error occurred while loading dashboard reviews."}
+          </p>
+          <s-button href="/app" variant="primary">Refresh Dashboard</s-button>
+        </div>
+      </s-section>
     </s-page>
   );
 }
