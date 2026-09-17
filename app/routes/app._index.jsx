@@ -152,16 +152,21 @@ export default function Dashboard() {
   const safeReviews = Array.isArray(reviews) ? reviews : [];
   const fetcher = useFetcher();
   const [editingReplyId, setEditingReplyId] = useState(null);
+  const [localReplies, setLocalReplies] = useState({});
   const [selectedProduct, setSelectedProduct] = useState("all");
   const [productSearch, setProductSearch] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
 
   useEffect(() => {
-    if (fetcher.data?.ok && fetcher.state === "idle") {
+    if (fetcher.data?.ok && fetcher.data?.reviewId) {
+      setLocalReplies((prev) => ({
+        ...prev,
+        [fetcher.data.reviewId]: fetcher.data.merchantReply || null,
+      }));
       setEditingReplyId(null);
     }
-  }, [fetcher.data, fetcher.state]);
+  }, [fetcher.data]);
 
   const totalReviewsCount = stats?.totalReviews || 0;
   const repliedReviewsCount = stats?.repliedReviews || 0;
@@ -494,7 +499,13 @@ export default function Dashboard() {
                 <span>Status</span>
                 <span />
               </div>
-              {filteredReviews.map((review) => (
+              {filteredReviews.map((review) => {
+                const currentReply =
+                  localReplies[review.id] !== undefined
+                    ? localReplies[review.id]
+                    : review.merchantReply;
+
+                return (
                 <details className={styles.reviewTableRow} key={review.id}>
                   <summary>
                     <div className={styles.tableReviewCell}>
@@ -526,12 +537,12 @@ export default function Dashboard() {
                       <span>Customer review</span>
                       <p className={styles.reviewBody}>{review.body}</p>
                     </div>
-                    {review.merchantReply ? (
+                    {currentReply ? (
                       <div className={styles.merchantReply}>
                         <span className={styles.replyMark}>↳</span>
                         <div>
                           <span>Response from your store</span>
-                          <p>{review.merchantReply}</p>
+                          <p>{currentReply}</p>
                         </div>
                       </div>
                     ) : null}
@@ -555,7 +566,7 @@ export default function Dashboard() {
                             </button>
                           </div>
                           <textarea
-                            defaultValue={review.merchantReply || ""}
+                            defaultValue={currentReply || ""}
                             id={`reply-${review.id}`}
                             maxLength="1000"
                             name="merchantReply"
@@ -583,7 +594,7 @@ export default function Dashboard() {
                             >
                               Cancel
                             </button>
-                            {review.merchantReply ? (
+                            {currentReply ? (
                               <button
                                 type="submit"
                                 name="merchantReply"
@@ -609,7 +620,7 @@ export default function Dashboard() {
                         }}
                       >
                         <span>↳</span>
-                        {review.merchantReply ? "Edit store response" : "Respond to customer"}
+                        {currentReply ? "Edit store response" : "Respond to customer"}
                       </button>
                     )}
                     <div className={styles.expandedFooter}>
@@ -618,7 +629,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </details>
-              ))}
+              );
+            })}
             </div>
             ) : (
               <div className={styles.noFilterResults}>
