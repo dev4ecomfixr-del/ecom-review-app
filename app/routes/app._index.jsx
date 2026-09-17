@@ -3,11 +3,8 @@ import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
-import { DEFAULT_PLAN, getPlanByCode, getPlanUsageLabel } from "../lib/plans";
-import {
-  getShopPlanCode,
-  getShopMonthlyUsage,
-} from "../lib/shop-plans.server";
+import { DEFAULT_PLAN, getPlanUsageLabel } from "../lib/plans";
+import { getShopMonthlyUsage } from "../lib/shop-plans.server";
 import styles from "../styles/review-dashboard.module.css";
 
 const formatDate = (date) =>

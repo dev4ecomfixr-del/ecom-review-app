@@ -4,18 +4,12 @@ import { useActionData, useLoaderData, useNavigation, useSubmit } from "react-ro
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
-import db from "../db.server";
 import {
-  DEFAULT_PLAN,
   PLANS,
-  PLAN_CODES,
-  getPlanByCode,
-  getPlanUsageLabel,
   isValidPlanCode,
 } from "../lib/plans";
 import { syncStarBadgeAvailability } from "../lib/app-feature-metafields.server";
 import {
-  getShopPlanCode,
   setShopPlanCode,
   getShopMonthlyUsage,
 } from "../lib/shop-plans.server";
