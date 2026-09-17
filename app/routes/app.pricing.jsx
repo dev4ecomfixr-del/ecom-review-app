@@ -7,6 +7,7 @@ import { authenticate } from "../shopify.server";
 import {
   PLANS,
   isValidPlanCode,
+  getPlanByCode,
 } from "../lib/plans";
 import { syncStarBadgeAvailability } from "../lib/app-feature-metafields.server";
 import {
