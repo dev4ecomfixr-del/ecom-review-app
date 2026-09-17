@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { useState, useEffect } from "react";
 import { useLoaderData, useFetcher, useNavigation, useRouteError } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
@@ -13,88 +12,129 @@ import {
 } from "../lib/reward-points.server";
 import styles from "../styles/reward-points.module.css";
 
+const DEFAULT_REWARD_POINT_SETTINGS = {
+  enabled: true,
+  pointsPerDollar: 1,
+  minSpend: 0,
+  pointUnitName: "Points",
+  redemptionTiers: [
+    { points: 100, type: "FIXED_AMOUNT", value: 5, label: "$5 off" },
+    { points: 200, type: "FIXED_AMOUNT", value: 10, label: "$10 off" },
+    { points: 500, type: "PERCENTAGE", value: 25, label: "25% off" },
+  ],
+  couponLifetimeDays: 30,
+  codePrefix: "RP-",
+};
+
 const formatDate = (date) => {
   if (!date) return "—";
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(d);
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "—";
+    return new Intl.DateTimeFormat("en", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(d);
+  } catch (_) {
+    return "—";
+  }
 };
 
 export const loader = async ({ request }) => {
-  const { admin, session } = await authenticate.admin(request);
   try {
-    await cleanupExpiredRewardCoupons(admin, session.shop);
-  } catch (e) {
-    console.warn("Coupon cleanup error:", e?.message);
-  }
+    const { admin, session } = await authenticate.admin(request);
+    try {
+      await cleanupExpiredRewardCoupons(admin, session.shop);
+    } catch (e) {
+      console.warn("Coupon cleanup error:", e?.message);
+    }
 
-  const data = await getRewardPointsData(session.shop);
-  return {
-    shop: session.shop,
-    ...data,
-  };
+    const data = await getRewardPointsData(session.shop);
+    return {
+      shop: session.shop,
+      ...data,
+    };
+  } catch (error) {
+    console.error("Loader error in reward-points:", error);
+    return {
+      shop: "",
+      settings: DEFAULT_REWARD_POINT_SETTINGS,
+      stats: {
+        totalCustomers: 0,
+        activePointsBalance: 0,
+        totalPointsEarned: 0,
+        totalPointsRedeemed: 0,
+        totalSpend: 0,
+      },
+      customerAccounts: [],
+      recentCoupons: [],
+      recentTransactions: [],
+      error: error?.message || "Failed to load data",
+    };
+  }
 };
 
 export const action = async ({ request }) => {
-  const { admin, session } = await authenticate.admin(request);
-  const formData = await request.formData();
-  const intent = formData.get("intent");
+  try {
+    const { admin, session } = await authenticate.admin(request);
+    const formData = await request.formData();
+    const intent = formData.get("intent");
 
-  if (intent === "saveSettings") {
-    try {
-      const rawSettings = JSON.parse(String(formData.get("settings") || "{}"));
-      const updated = await saveRewardPointSettings(session.shop, rawSettings);
-      return { ok: true, message: "Settings saved successfully", settings: updated };
-    } catch (error) {
-      return { ok: false, error: error.message || "Failed to save settings" };
+    if (intent === "saveSettings") {
+      try {
+        const rawSettings = JSON.parse(String(formData.get("settings") || "{}"));
+        const updated = await saveRewardPointSettings(session.shop, rawSettings);
+        return { ok: true, message: "Settings saved successfully", settings: updated };
+      } catch (error) {
+        return { ok: false, error: error?.message || "Failed to save settings" };
+      }
     }
-  }
 
-  if (intent === "adjustPoints") {
-    const customerEmail = String(formData.get("customerEmail") || "");
-    const points = Number(formData.get("points") || 0);
-    const description = String(formData.get("description") || "");
-    const customerName = String(formData.get("customerName") || "");
+    if (intent === "adjustPoints") {
+      const customerEmail = String(formData.get("customerEmail") || "");
+      const points = Number(formData.get("points") || 0);
+      const description = String(formData.get("description") || "");
+      const customerName = String(formData.get("customerName") || "");
 
-    try {
-      const account = await adjustCustomerPoints(
-        session.shop,
-        customerEmail,
-        points,
-        description,
-        customerName,
-      );
-      return { ok: true, message: `Points updated for ${customerEmail}`, account };
-    } catch (error) {
-      return { ok: false, error: error.message || "Failed to adjust points" };
+      try {
+        const account = await adjustCustomerPoints(
+          session.shop,
+          customerEmail,
+          points,
+          description,
+          customerName,
+        );
+        return { ok: true, message: `Points updated for ${customerEmail}`, account };
+      } catch (error) {
+        return { ok: false, error: error?.message || "Failed to adjust points" };
+      }
     }
-  }
 
-  if (intent === "deleteCoupon") {
-    const couponId = String(formData.get("couponId") || "");
-    try {
-      await deleteRedeemedPointCoupon(admin, session.shop, couponId);
-      return { ok: true, deletedCouponId: couponId, message: "Coupon deleted" };
-    } catch (error) {
-      return { ok: false, error: error.message || "Failed to delete coupon" };
+    if (intent === "deleteCoupon") {
+      const couponId = String(formData.get("couponId") || "");
+      try {
+        await deleteRedeemedPointCoupon(admin, session.shop, couponId);
+        return { ok: true, deletedCouponId: couponId, message: "Coupon deleted" };
+      } catch (error) {
+        return { ok: false, error: error?.message || "Failed to delete coupon" };
+      }
     }
-  }
 
-  return { ok: true };
+    return { ok: true };
+  } catch (error) {
+    console.error("Action error in reward-points:", error);
+    return { ok: false, error: error?.message || "Server action failed" };
+  }
 };
 
 export default function RewardPoints() {
-  const {
-    settings: initialSettings,
-    stats,
-    customerAccounts,
-    recentCoupons,
-    recentTransactions,
-  } = useLoaderData();
+  const loaderData = useLoaderData() || {};
+  const initialSettings = loaderData.settings || DEFAULT_REWARD_POINT_SETTINGS;
+  const stats = loaderData.stats || {};
+  const customerAccounts = Array.isArray(loaderData.customerAccounts) ? loaderData.customerAccounts : [];
+  const recentCoupons = Array.isArray(loaderData.recentCoupons) ? loaderData.recentCoupons : [];
+  const recentTransactions = Array.isArray(loaderData.recentTransactions) ? loaderData.recentTransactions : [];
 
   const shopify = useAppBridge();
   const fetcher = useFetcher();
@@ -108,13 +148,22 @@ export default function RewardPoints() {
   const isSaving = fetcher.state === "submitting" && fetcher.formData?.get("intent") === "saveSettings";
 
   useEffect(() => {
-    if (fetcher.data?.ok && fetcher.data?.message) {
-      shopify.toast.show(fetcher.data.message);
+    if (fetcher.data?.ok) {
+      if (fetcher.data.settings) {
+        setSettings(fetcher.data.settings);
+      }
+      if (fetcher.data.message) {
+        try {
+          shopify?.toast?.show?.(fetcher.data.message);
+        } catch (_) {}
+      }
       if (adjustModal.open) {
         setAdjustModal({ open: false, email: "", name: "", points: 50, note: "" });
       }
     } else if (fetcher.data?.error) {
-      shopify.toast.show(fetcher.data.error, { isError: true });
+      try {
+        shopify?.toast?.show?.(fetcher.data.error, { isError: true });
+      } catch (_) {}
     }
   }, [fetcher.data, shopify, adjustModal.open]);
 
@@ -123,7 +172,8 @@ export default function RewardPoints() {
   };
 
   const handleTierChange = (index, field, value) => {
-    const updatedTiers = [...settings.redemptionTiers];
+    const currentTiers = Array.isArray(settings?.redemptionTiers) ? settings.redemptionTiers : DEFAULT_REWARD_POINT_SETTINGS.redemptionTiers;
+    const updatedTiers = [...currentTiers];
     updatedTiers[index] = { ...updatedTiers[index], [field]: value };
     
     // Auto-update label
@@ -137,6 +187,7 @@ export default function RewardPoints() {
   };
 
   const addTier = () => {
+    const currentTiers = Array.isArray(settings?.redemptionTiers) ? settings.redemptionTiers : DEFAULT_REWARD_POINT_SETTINGS.redemptionTiers;
     const newTier = {
       points: 100,
       type: "FIXED_AMOUNT",
@@ -145,14 +196,15 @@ export default function RewardPoints() {
     };
     setSettings((prev) => ({
       ...prev,
-      redemptionTiers: [...prev.redemptionTiers, newTier],
+      redemptionTiers: [...currentTiers, newTier],
     }));
   };
 
   const removeTier = (index) => {
+    const currentTiers = Array.isArray(settings?.redemptionTiers) ? settings.redemptionTiers : DEFAULT_REWARD_POINT_SETTINGS.redemptionTiers;
     setSettings((prev) => ({
       ...prev,
-      redemptionTiers: prev.redemptionTiers.filter((_, i) => i !== index),
+      redemptionTiers: currentTiers.filter((_, i) => i !== index),
     }));
   };
 
@@ -160,7 +212,7 @@ export default function RewardPoints() {
     fetcher.submit(
       {
         intent: "saveSettings",
-        settings: JSON.stringify(settings),
+        settings: JSON.stringify(settings || DEFAULT_REWARD_POINT_SETTINGS),
       },
       { method: "post" },
     );
@@ -192,14 +244,26 @@ export default function RewardPoints() {
             <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", color: "#ffffff", fontWeight: "700" }}>
               <input
                 type="checkbox"
-                checked={settings.enabled}
+                checked={Boolean(settings?.enabled)}
                 onChange={(e) => handleSettingChange("enabled", e.target.checked)}
                 style={{ width: "18px", height: "18px", accentColor: "#10b981", cursor: "pointer" }}
               />
-              {settings.enabled ? "Reward Points Active" : "Reward Points Disabled"}
+              {settings?.enabled ? "Reward Points Active" : "Reward Points Disabled"}
             </label>
           </div>
         </div>
+
+        {/* Feedback Banners */}
+        {fetcher.data?.message && (
+          <div style={{ padding: "12px 16px", borderRadius: "8px", background: "#d1fae5", border: "1px solid #10b981", color: "#065f46", fontWeight: "600", fontSize: "14px" }}>
+            ✓ {fetcher.data.message}
+          </div>
+        )}
+        {fetcher.data?.error && (
+          <div style={{ padding: "12px 16px", borderRadius: "8px", background: "#fee2e2", border: "1px solid #ef4444", color: "#991b1b", fontWeight: "600", fontSize: "14px" }}>
+            ✕ {fetcher.data.error}
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className={styles.statsGrid}>
