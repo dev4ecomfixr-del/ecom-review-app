@@ -13,24 +13,29 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-  const reviewId = formData.get("reviewId");
+  try {
+    const { session } = await authenticate.admin(request);
+    const formData = await request.formData();
+    const intent = formData.get("intent");
+    const reviewId = formData.get("reviewId");
 
-  if (intent === "save-reply" && reviewId && db.review) {
-    const merchantReply = String(formData.get("merchantReply") || "").trim().slice(0, 1000);
-    await db.review.updateMany({
-      where: { id: String(reviewId), shop: session.shop },
-      data: {
-        merchantReply: merchantReply || null,
-        repliedAt: merchantReply ? new Date() : null,
-      },
-    });
-    return { ok: true, reviewId, merchantReply };
+    if (intent === "save-reply" && reviewId && db.review) {
+      const merchantReply = String(formData.get("merchantReply") || "").trim().slice(0, 1000);
+      await db.review.updateMany({
+        where: { id: String(reviewId), shop: session.shop },
+        data: {
+          merchantReply: merchantReply || null,
+          repliedAt: merchantReply ? new Date() : null,
+        },
+      });
+      return { ok: true, reviewId, merchantReply };
+    }
+
+    return { ok: true };
+  } catch (error) {
+    console.error("Action error in app.jsx:", error);
+    return { ok: false, error: error?.message || "Failed to save" };
   }
-
-  return { ok: true };
 };
 
 export default function App() {
