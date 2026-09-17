@@ -94,6 +94,19 @@
     linear-gradient(135deg, #1d4ed8, #312e81);
 }
 
+.custom {
+  background:
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.35), transparent 35%),
+    linear-gradient(135deg, #0284c7, #4f46e5);
+}
+
+.customPlanGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 580px;
+  margin: 18px auto 0;
+}
+
 .planTop {
   display: flex;
   align-items: center;

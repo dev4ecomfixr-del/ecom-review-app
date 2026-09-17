@@ -14,186 +14,50 @@ import {
   isValidPlanCode,
 } from "../lib/plans";
 import { syncStarBadgeAvailability } from "../lib/app-feature-metafields.server";
-import { getShopPlanCode, setShopPlanCode } from "../lib/shop-plans.server";
+import {
+  getShopPlanCode,
+  setShopPlanCode,
+  getShopMonthlyUsage,
+} from "../lib/shop-plans.server";
 import styles from "../styles/pricing.module.css";
 
-const PAID_PLAN_CODES = [PLAN_CODES.GROWTH, PLAN_CODES.PRO];
-const PAID_PLAN_PRIORITY = [PLAN_CODES.PRO, PLAN_CODES.GROWTH];
-
-const isBillingTestMode = () =>
-  process.env.SHOPIFY_BILLING_TEST === "true" ||
-  process.env.NODE_ENV !== "production";
-
-const getBillingReturnUrl = (plan, shop) => {
-  if (process.env.SHOPIFY_BILLING_RETURN_URL) {
-    const returnUrl = new URL(process.env.SHOPIFY_BILLING_RETURN_URL);
-    returnUrl.searchParams.set("billing_plan", plan);
-    return returnUrl.toString();
-  }
-
-  const cleanShop = shop.replace(".myshopify.com", "");
-  const apiKey = process.env.SHOPIFY_API_KEY || "";
-  const returnUrl = new URL(
-    `/store/${cleanShop}/apps/${apiKey}/app/pricing`,
-    "https://admin.shopify.com",
-  );
-  returnUrl.searchParams.set("billing_plan", plan);
-  return returnUrl.toString();
-};
-
-const getActivePaidPlan = (appSubscriptions = []) => {
-  const activePlanNames = appSubscriptions.map((subscription) => subscription.name);
-
-  return PAID_PLAN_PRIORITY.find((planCode) =>
-    activePlanNames.includes(planCode),
-  );
-};
-
-const formatBillingError = (error) => {
-  const messages = (error.errorData || [])
-    .map((item) => item.message)
-    .filter(Boolean);
-
-  if (messages.length > 0) {
-    return messages.join(" ");
-  }
-
-  return error.message || "Shopify billing could not be started.";
-};
-
-const isCustomAppBillingError = (error) => {
-  const msg = formatBillingError(error).toLowerCase();
-  return (
-    msg.includes("custom apps cannot use") ||
-    msg.includes("custom app") ||
-    msg.includes("single merchant") ||
-    msg.includes("distribution")
-  );
-};
-
 export const loader = async ({ request }) => {
-  const { admin, billing, session } = await authenticate.admin(request);
-  const billingPlan = new URL(request.url).searchParams.get("billing_plan");
-  const [planCode, reviewCount] = await Promise.all([
-    getShopPlanCode(session.shop),
-    db.review.count({ where: { shop: session.shop } }),
-  ]);
-  let currentPlanCode = planCode || DEFAULT_PLAN.code;
-  let activePaidPlan = null;
+  const { admin, session } = await authenticate.admin(request);
+  const usage = await getShopMonthlyUsage(session.shop);
 
   try {
-    const billingCheck = await billing.check({
-      plans: PAID_PLAN_CODES,
-      isTest: isBillingTestMode(),
-    });
-    activePaidPlan = getActivePaidPlan(billingCheck.appSubscriptions);
-
-    if (activePaidPlan && currentPlanCode !== activePaidPlan) {
-      await setShopPlanCode(session.shop, activePaidPlan);
-      currentPlanCode = activePaidPlan;
-    }
-
-    if (PAID_PLAN_CODES.includes(currentPlanCode) && !activePaidPlan) {
-      await setShopPlanCode(session.shop, DEFAULT_PLAN.code);
-      currentPlanCode = DEFAULT_PLAN.code;
-    }
-
-    if (
-      billingPlan &&
-      PAID_PLAN_CODES.includes(billingPlan) &&
-      activePaidPlan !== billingPlan
-    ) {
-      currentPlanCode = DEFAULT_PLAN.code;
-    }
-  } catch (error) {
-    console.warn(
-      "Shopify billing check skipped (custom app or billing unavailable):",
-      error?.message || error,
-    );
-  }
-
-  const currentPlan = getPlanByCode(currentPlanCode);
-
-  try {
-    await syncStarBadgeAvailability(admin, currentPlan.code);
+    await syncStarBadgeAvailability(admin, usage.plan.code);
   } catch (e) {
     console.warn("Failed to sync star badge availability:", e?.message || e);
   }
 
   return {
-    currentPlanCode: currentPlan.code,
+    shop: session.shop,
+    currentPlan: usage.plan,
+    currentPlanCode: usage.plan.code,
     isLimitReached:
-      currentPlan.reviewLimit !== null && reviewCount >= currentPlan.reviewLimit,
-    reviewCount,
-    usageLabel: getPlanUsageLabel(currentPlan, reviewCount),
+      usage.plan.reviewLimit !== null &&
+      usage.monthlyReviewCount >= usage.plan.reviewLimit,
+    reviewCount: usage.monthlyReviewCount,
+    monthlyReviewCount: usage.monthlyReviewCount,
+    totalReviewCount: usage.totalReviewCount,
+    remainingReviews: usage.remainingReviews,
+    nextResetDate: usage.nextResetDate,
+    usageLabel: usage.usageLabel,
   };
 };
 
 export const action = async ({ request }) => {
-  const { admin, billing, session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const plan = String(formData.get("plan") || "");
 
   if (!isValidPlanCode(plan)) {
-    return { ok: false };
-  }
-
-  if (PAID_PLAN_CODES.includes(plan)) {
-    try {
-      await billing.request({
-        plan,
-        isTest: isBillingTestMode(),
-        returnUrl: getBillingReturnUrl(plan, session.shop),
-      });
-    } catch (error) {
-      if (error instanceof Response) {
-        throw error;
-      }
-
-      console.error("Shopify billing request failed", {
-        errorData: error.errorData,
-        message: error.message,
-      });
-
-      if (isCustomAppBillingError(error)) {
-        await setShopPlanCode(session.shop, plan);
-        try {
-          await syncStarBadgeAvailability(admin, plan);
-        } catch (e) {
-          console.warn("Failed to sync star badge:", e?.message || e);
-        }
-        return { ok: true, plan };
-      }
-
-      return {
-        error: formatBillingError(error),
-        ok: false,
-      };
-    }
-  }
-
-  if (plan === DEFAULT_PLAN.code) {
-    try {
-      const billingCheck = await billing.check({
-        plans: PAID_PLAN_CODES,
-        isTest: isBillingTestMode(),
-      });
-
-      await Promise.all(
-        billingCheck.appSubscriptions.map((subscription) =>
-          billing.cancel({
-            subscriptionId: subscription.id,
-            isTest: isBillingTestMode(),
-            prorate: true,
-          }),
-        ),
-      );
-    } catch (error) {
-      console.warn("Failed to cancel subscription during plan change:", error?.message || error);
-    }
+    return { ok: false, error: "Invalid plan code" };
   }
 
   await setShopPlanCode(session.shop, plan);
+
   try {
     await syncStarBadgeAvailability(admin, plan);
   } catch (e) {
@@ -204,7 +68,14 @@ export const action = async ({ request }) => {
 };
 
 export default function Pricing() {
-  const { currentPlanCode, isLimitReached, usageLabel } = useLoaderData();
+  const {
+    currentPlanCode,
+    isLimitReached,
+    usageLabel,
+    monthlyReviewCount,
+    remainingReviews,
+    nextResetDate,
+  } = useLoaderData();
   const actionData = useActionData();
   const navigation = useNavigation();
   const submit = useSubmit();
@@ -213,6 +84,7 @@ export default function Pricing() {
     actionData?.error
       ? currentPlanCode
       : navigation.formData?.get("plan") || actionData?.plan || currentPlanCode;
+  const currentPlan = getPlanByCode(selectedPlan);
   const isSaving = navigation.state !== "idle";
 
   useEffect(() => {
@@ -236,57 +108,95 @@ export default function Pricing() {
         {actionData?.error ? (
           <p className={styles.billingError}>{actionData.error}</p>
         ) : null}
-        <div className={styles.planGrid}>
-          {PLANS.map((plan) => {
-            const isCurrent = selectedPlan === plan.code;
+        {currentPlanCode.toUpperCase().startsWith("CUSTOM") ? (
+          <div className={styles.customPlanGrid}>
+            <article className={`${styles.planCard} ${styles.custom} ${styles.currentPlan}`}>
+              <div className={styles.planTop}>
+                <span>Custom Plan</span>
+                <strong>Monthly Recurring · Active</strong>
+              </div>
+              <div className={styles.priceRow}>
+                <h3>{currentPlan.reviewLimit ? `${currentPlan.reviewLimit} Reviews` : "Custom"}</h3>
+                <small>/mo (recurring)</small>
+              </div>
+              <p>Your store is active on a dedicated custom monthly recurring package with full access to all features.</p>
+              <div className={styles.limitPill}>
+                {currentPlan.reviewLimit
+                  ? `${monthlyReviewCount}/${currentPlan.reviewLimit} used this month · ${remainingReviews} remaining`
+                  : "Custom monthly quota"}
+              </div>
+              <ul>
+                <li>Up to {currentPlan.reviewLimit || "custom"} reviews every month</li>
+                {nextResetDate ? <li>Monthly quota resets on <strong>{nextResetDate}</strong></li> : null}
+                <li>Storefront review section</li>
+                <li>Review vibe storefront block</li>
+                <li>Star badge widget</li>
+                <li>Video reviews layout</li>
+                <li>Review analytics insights</li>
+                <li>Post-review discount popup</li>
+                <li>Priority moderation queue</li>
+                <li>Premium support</li>
+              </ul>
+              <div className={styles.planAction}>
+                <s-button variant="primary" disabled>
+                  Current plan
+                </s-button>
+              </div>
+            </article>
+          </div>
+        ) : (
+          <div className={styles.planGrid}>
+            {PLANS.map((plan) => {
+              const isCurrent = selectedPlan === plan.code;
 
-            return (
-              <article
-                className={`${styles.planCard} ${styles[plan.tone]} ${
-                  isCurrent ? styles.currentPlan : ""
-                }`}
-                key={plan.name}
-              >
-                <div className={styles.planTop}>
-                  <span>{plan.name}</span>
-                  <strong>{isCurrent ? "Current" : plan.badge}</strong>
-                </div>
-                <div className={styles.priceRow}>
-                  <h3>{plan.price}</h3>
-                  {plan.suffix && <small>{plan.suffix}</small>}
-                </div>
-                <p>{plan.description}</p>
-                <div className={styles.limitPill}>
-                  {plan.reviewLimit === null
-                    ? "100+ reviews · Unlimited"
-                    : `${plan.reviewLimit} reviews`}
-                </div>
-                <ul>
-                  {plan.features.map((feature) => (
-                    <li key={feature}>{feature}</li>
-                  ))}
-                </ul>
-                <div className={styles.planAction}>
-                  <s-button
-                    onClick={() =>
-                      submit(
-                        { plan: plan.code },
-                        { method: "post", action: "/app/pricing" },
-                      )
-                    }
-                    variant="primary"
-                    {...(isCurrent ? { disabled: true } : {})}
-                    {...(isSaving && selectedPlan === plan.code
-                      ? { loading: true }
-                      : {})}
-                  >
-                    {isCurrent ? "Current plan" : "Select plan"}
-                  </s-button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+              return (
+                <article
+                  className={`${styles.planCard} ${styles[plan.tone]} ${
+                    isCurrent ? styles.currentPlan : ""
+                  }`}
+                  key={plan.name}
+                >
+                  <div className={styles.planTop}>
+                    <span>{plan.name}</span>
+                    <strong>{isCurrent ? "Current" : plan.badge}</strong>
+                  </div>
+                  <div className={styles.priceRow}>
+                    <h3>{plan.price}</h3>
+                    {plan.suffix && <small>{plan.suffix}</small>}
+                  </div>
+                  <p>{plan.description}</p>
+                  <div className={styles.limitPill}>
+                    {plan.reviewLimit === null
+                      ? "100+ reviews · Unlimited"
+                      : `${plan.reviewLimit} reviews`}
+                  </div>
+                  <ul>
+                    {plan.features.map((feature) => (
+                      <li key={feature}>{feature}</li>
+                    ))}
+                  </ul>
+                  <div className={styles.planAction}>
+                    <s-button
+                      onClick={() =>
+                        submit(
+                          { plan: plan.code },
+                          { method: "post", action: "/app/pricing" },
+                        )
+                      }
+                      variant="primary"
+                      {...(isCurrent ? { disabled: true } : {})}
+                      {...(isSaving && selectedPlan === plan.code
+                        ? { loading: true }
+                        : {})}
+                    >
+                      {isCurrent ? "Current plan" : "Select plan"}
+                    </s-button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
 
         <div className={styles.infoGrid}>
           <div
@@ -302,10 +212,11 @@ export default function Pricing() {
             </p>
           </div>
           <div className={styles.noteCard}>
-            <h3>Shopify billing is active</h3>
+            <h3>Store Plan Management</h3>
             <p>
-              Paid plans redirect merchants to Shopify for subscription approval
-              before the plan is saved for this shop.
+              Your store's package controls available review limits and widget
+              features. Packages can be activated here or remotely via your external
+              management API.
             </p>
           </div>
         </div>

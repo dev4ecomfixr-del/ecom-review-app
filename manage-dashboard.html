@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReviewLift — Store & Package Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+      --card-shadow-hover: 0 12px 30px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+      
+      --primary: #0f172a;
+      --accent: #10b981;
+      --accent-light: #ecfdf5;
+      --accent-dark: #047857;
+      
+      --pro-color: #7c3aed;
+      --pro-bg: #f5f3ff;
+      --pro-border: #ddd6fe;
+
+      --custom-color: #0284c7;
+      --custom-bg: #f0f9ff;
+      --custom-border: #bae6fd;
+      
+      --growth-color: #2563eb;
+      --growth-bg: #eff6ff;
+      --growth-border: #bfdbfe;
+      
+      --starter-color: #475569;
+      --starter-bg: #f1f5f9;
+      --starter-border: #e2e8f0;
+
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      
+      --input-bg: #f8fafc;
+      --input-border: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2.5rem 1.5rem;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.04) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.04) 0px, transparent 50%);
+    }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+    }
+
+    /* Top Navbar / Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      background: var(--card-bg);
+      padding: 1.25rem 1.75rem;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--card-shadow);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    }
+
+    .brand h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.02em;
+    }
+
+    .brand p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    /* Buttons */
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.65rem 1.15rem;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn:hover {
+      background: #1e293b;
+      transform: translateY(-1px);
+    }
+
+    .btn-emerald {
+      background: #10b981;
+      color: white;
+    }
+    .btn-emerald:hover {
+      background: #059669;
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    /* Stats Ribbon */
+    .stats-ribbon {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1.1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--card-shadow);
+    }
+
+    .stat-info span {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .stat-info h3 {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-top: 0.2rem;
+    }
+
+    .stat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Notification Banner */
+    .notification {
+      padding: 0.85rem 1.25rem;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      display: none;
+      animation: fadeIn 0.25s ease;
+    }
+    .notification.success { background: var(--accent-light); color: var(--accent-dark); border: 1px solid #a7f3d0; }
+    .notification.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+    /* Settings Panel */
+    .settings-panel {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1.35rem;
+      box-shadow: var(--card-shadow);
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text);
+      padding: 0.7rem 0.95rem;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    }
+
+    /* Action / Search Bar */
+    .action-bar {
+      display: flex;
+      gap: 0.75rem;
+      background: var(--card-bg);
+      padding: 0.85rem 1.25rem;
+      border-radius: 14px;
+      border: 1px solid var(--card-border);
+      align-items: center;
+      box-shadow: var(--card-shadow);
+    }
+
+    .search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 0.35rem;
+      font-size: 0.95rem;
+      color: var(--text);
+      outline: none;
+    }
+
+    /* Stores Grid */
+    .stores-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1.35rem;
+    }
+
+    .store-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 1.45rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1.35rem;
+      box-shadow: var(--card-shadow);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .store-card:hover {
+      box-shadow: var(--card-shadow-hover);
+      transform: translateY(-2px);
+      border-color: #cbd5e1;
+    }
+
+    .store-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+    }
+
+    .store-card.pro-active::before { background: var(--pro-color); }
+    .store-card.custom-active::before { background: var(--custom-color); }
+    .store-card.growth-active::before { background: var(--growth-color); }
+    .store-card.starter-active::before { background: var(--starter-color); }
+
+    .store-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .store-domain-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .store-domain {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary);
+      word-break: break-all;
+    }
+
+    .badge {
+      font-size: 0.72rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 9999px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .badge-pro { background: var(--pro-bg); color: var(--pro-color); border: 1px solid var(--pro-border); }
+    .badge-custom { background: var(--custom-bg); color: var(--custom-color); border: 1px solid var(--custom-border); }
+    .badge-growth { background: var(--growth-bg); color: var(--growth-color); border: 1px solid var(--growth-border); }
+    .badge-starter { background: var(--starter-bg); color: var(--starter-color); border: 1px solid var(--starter-border); }
+
+    /* Remaining Reviews Banner in Card */
+    .quota-box {
+      background: #f8fafc;
+      border: 1px solid #edf2f7;
+      border-radius: 12px;
+      padding: 0.75rem 0.95rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .quota-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .remaining-pill {
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+    }
+    .remaining-pill.unlimited { background: #f5f3ff; color: #7c3aed; }
+    .remaining-pill.available { background: #ecfdf5; color: #059669; }
+    .remaining-pill.empty { background: #fef2f2; color: #dc2626; }
+
+    /* 1-Click Plan Switcher Pill Buttons (4 Columns) */
+    .plan-switch-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1.15fr;
+      gap: 0.35rem;
+      background: #f1f5f9;
+      padding: 0.35rem;
+      border-radius: 12px;
+    }
+
+    .plan-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 0.5rem 0.2rem;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+    }
+
+    .plan-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .plan-btn.active.starter {
+      background: white;
+      color: var(--starter-color);
+      border-color: #cbd5e1;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .plan-btn.active.growth {
+      background: white;
+      color: var(--growth-color);
+      border-color: #bfdbfe;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.12);
+    }
+
+    .plan-btn.active.pro {
+      background: white;
+      color: var(--pro-color);
+      border-color: #ddd6fe;
+      box-shadow: 0 2px 6px rgba(124, 58, 237, 0.15);
+    }
+
+    .plan-btn.active.custom {
+      background: white;
+      color: var(--custom-color);
+      border-color: var(--custom-border);
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.15);
+    }
+
+    /* Access Toggle Pill */
+    .access-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.28rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+      user-select: none;
+    }
+
+    .access-toggle-btn.access-on {
+      background: #ecfdf5;
+      color: #047857;
+      border-color: #a7f3d0;
+    }
+    .access-toggle-btn.access-on:hover {
+      background: #d1fae5;
+      transform: translateY(-1px);
+    }
+
+    .access-toggle-btn.access-off {
+      background: #fef2f2;
+      color: #dc2626;
+      border-color: #fecaca;
+    }
+    .access-toggle-btn.access-off:hover {
+      background: #fee2e2;
+      transform: translateY(-1px);
+    }
+
+    .access-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .access-on .access-dot {
+      background: #10b981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+    }
+
+    .access-off .access-dot {
+      background: #ef4444;
+    }
+
+    .store-card.access-disabled {
+      border-color: #fecaca;
+      background: #fffcfc;
+    }
+    .store-card.access-disabled::before {
+      background: #ef4444 !important;
+    }
+
+    /* Analytics Charts Grid */
+    .analytics-charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .chart-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 1.35rem 1.45rem;
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .chart-card:hover {
+      box-shadow: var(--card-shadow-hover);
+    }
+
+    .chart-card-header {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: 0.45rem;
+      min-height: 46px;
+      margin-bottom: 0.5rem;
+    }
+
+    .chart-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #1e293b;
+      letter-spacing: -0.01em;
+    }
+
+    .chart-pill-group {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+
+    .chart-pill-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.18rem 0.5rem;
+      border-radius: 9999px;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.28rem;
+      line-height: 1.2;
+    }
+
+    .chart-pill-badge svg {
+      flex-shrink: 0;
+    }
+
+    .chart-pill-badge.blue {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+
+    .chart-pill-badge.green {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+    }
+
+    .chart-pill-badge.amber {
+      background: #fffbeb;
+      color: #d97706;
+      border: 1px solid #fde68a;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      width: 100%;
+      height: 185px;
+      margin-top: 0.35rem;
+    }
+
+    .chart-legend-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      margin-top: 0.75rem;
+      padding-top: 0.35rem;
+    }
+
+    .chart-legend-bullet {
+      width: 16px;
+      height: 2.5px;
+      background: #0284c7;
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    .chart-legend-text {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Modal Popup Backdrop & Container */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1.5rem;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal-card {
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 680px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.28);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      padding: 1.75rem;
+      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(16px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .modal-header h2 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .modal-header p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    .modal-close-btn {
+      background: #f1f5f9;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      font-weight: 700;
+      transition: all 0.15s;
+    }
+    .modal-close-btn:hover {
+      background: #e2e8f0;
+      color: var(--primary);
+    }
+
+    /* Selected Store Banner in Modal */
+    .store-banner {
+      background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+      border: 1px solid #bae6fd;
+      border-radius: 16px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .store-banner-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .store-banner-tag {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #0284c7;
+    }
+
+    .store-banner-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #0f172a;
+      word-break: break-all;
+      margin-top: 0.15rem;
+    }
+
+    .store-banner-tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.65rem;
+      margin-top: 0.25rem;
+    }
+
+    .banner-tile {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0.65rem 0.85rem;
+    }
+
+    .banner-tile span {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      display: block;
+    }
+
+    .banner-tile strong {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-top: 0.2rem;
+      display: block;
+    }
+
+    /* Modal Graph & Section Card */
+    .modal-section {
+      background: #f8fafc;
+      border: 1px solid #edf2f7;
+      border-radius: 14px;
+      padding: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .modal-section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 160px;
+    }
+
+    .store-card {
+      cursor: pointer;
+    }
+
+    .review-item {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.75rem 0.95rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .review-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3.5rem 1.5rem;
+      background: var(--card-bg);
+      border: 1px dashed var(--card-border);
+      border-radius: 18px;
+      color: var(--text-muted);
+      box-shadow: var(--card-shadow);
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #e2e8f0;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Header -->
+    <div class="header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+        </div>
+        <div>
+          <h1>ReviewLift Store & Package Manager</h1>
+          <p>Control active packages, custom review quotas & remaining reviews</p>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="toggleSettings()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          API Settings
+        </button>
+        <button class="btn btn-emerald" onclick="loadStores()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          Refresh Stores
+        </button>
+      </div>
+    </div>
+
+    <!-- Alert Banner -->
+    <div id="alertBox" class="notification"></div>
+
+    <!-- Stats Ribbon -->
+    <div class="stats-ribbon">
+      <div class="stat-card">
+        <div class="stat-info">
+          <span>Connected Stores</span>
+          <h3 id="statTotalStores">0</h3>
+        </div>
+        <div class="stat-icon" style="background:#f1f5f9;color:#0f172a;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-info">
+          <span>Pro Active (Unlimited)</span>
+          <h3 id="statProStores" style="color:var(--pro-color)">0</h3>
+        </div>
+        <div class="stat-icon" style="background:var(--pro-bg);color:var(--pro-color)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-info">
+          <span>Custom Packages</span>
+          <h3 id="statCustomStores" style="color:var(--custom-color)">0</h3>
+        </div>
+        <div class="stat-icon" style="background:var(--custom-bg);color:var(--custom-color)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-info">
+          <span>Growth Active (50)</span>
+          <h3 id="statGrowthStores" style="color:var(--growth-color)">0</h3>
+        </div>
+        <div class="stat-icon" style="background:var(--growth-bg);color:var(--growth-color)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-info">
+          <span>Starter (Free)</span>
+          <h3 id="statStarterStores" style="color:var(--starter-color)">0</h3>
+        </div>
+        <div class="stat-icon" style="background:var(--starter-bg);color:var(--starter-color)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics Charts Grid (Exact Style) -->
+    <div class="analytics-charts-grid">
+      
+      <!-- Card 1: Daily Reviews (Last 30 Days) -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3 class="chart-title">Total Reviews (Last 30 Days)</h3>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="chartDailyReviews"></canvas>
+        </div>
+        <div class="chart-legend-row">
+          <span class="chart-legend-bullet"></span>
+          <span class="chart-legend-text">Daily Reviews</span>
+        </div>
+      </div>
+
+      <!-- Card 2: Monthly Reviews (Last 12 Months) -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3 class="chart-title">Total Reviews (Last 12 Months)</h3>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="chartMonthlyReviews"></canvas>
+        </div>
+        <div class="chart-legend-row">
+          <span class="chart-legend-bullet"></span>
+          <span class="chart-legend-text">Monthly Reviews</span>
+        </div>
+      </div>
+
+      <!-- Card 3: New Shops Created (Monthly) -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3 class="chart-title">New Shops Created (Monthly)</h3>
+          <div class="chart-pill-group">
+            <span class="chart-pill-badge blue">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+              <span id="pillTotalStores">0 Total Shops</span>
+            </span>
+            <span class="chart-pill-badge green">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              <span id="pillActiveStores">0 Active Shops</span>
+            </span>
+            <span class="chart-pill-badge amber">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+              <span id="pillCustomStores">0 Custom Limits</span>
+            </span>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="chartMonthlyStores"></canvas>
+        </div>
+        <div class="chart-legend-row">
+          <span class="chart-legend-bullet"></span>
+          <span class="chart-legend-text">Stores Created</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Connection Settings (Auto-Saved in Browser) -->
+    <div id="settingsPanel" class="settings-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <label style="color:var(--primary);font-size:0.85rem">API Connection Settings (Auto-Saved to Browser)</label>
+        <span style="color:#059669;font-size:0.75rem;font-weight:700;">✓ Automatically Saved</span>
+      </div>
+      <div class="settings-grid">
+        <div class="form-group">
+          <label>App Base URL</label>
+          <input type="text" id="apiUrl" oninput="saveConfig()" placeholder="https://your-tunnel.trycloudflare.com">
+        </div>
+        <div class="form-group">
+          <label>Secret Token</label>
+          <input type="text" id="apiSecret" oninput="saveConfig()" placeholder="reviewlift_secret_2026">
+        </div>
+      </div>
+    </div>
+
+    <!-- Action / Search Bar -->
+    <div class="action-bar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="searchInput" class="search-input" placeholder="Search store or type new domain (e.g. miki-store.myshopify.com)..." oninput="filterStores()">
+      <button class="btn btn-secondary" style="padding:0.45rem 0.9rem;font-size:0.82rem;" onclick="addOrQueryStore()">
+        + Activate Pro
+      </button>
+      <button class="btn btn-secondary" style="padding:0.45rem 0.9rem;font-size:0.82rem;" onclick="addCustomStorePrompt()">
+        ✏️ Custom Limit
+      </button>
+    </div>
+
+    <!-- Stores Cards Grid -->
+    <div id="storesGrid" class="stores-grid">
+      <div class="empty-state" style="grid-column: 1/-1;">
+    </div>
+
+  </div>
+
+  <!-- Modal Popup for Store Details & Graph -->
+  <div id="storeModalOverlay" class="modal-overlay" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2>Management panel</h2>
+          <p id="modalShopSubtitle">Adjust store review package, access status & analytics</p>
+        </div>
+        <button class="modal-close-btn" onclick="closeStoreModal()">✕</button>
+      </div>
+
+      <!-- Store Main Overview Banner -->
+      <div id="modalStoreBanner" class="store-banner">
+        <div class="store-banner-top">
+          <div>
+            <span class="store-banner-tag">SELECTED STORE</span>
+            <h3 class="store-banner-title" id="modalShopDomain">store.myshopify.com</h3>
+          </div>
+          <div id="modalAccessPillContainer"></div>
+        </div>
+
+        <div class="store-banner-tiles">
+          <div class="banner-tile">
+            <span>Active Plan</span>
+            <strong id="modalTilePlan">PRO</strong>
+          </div>
+          <div class="banner-tile">
+            <span>Cycle Reset</span>
+            <strong id="modalTileReset">Oct 17, 2026</strong>
+          </div>
+          <div class="banner-tile">
+            <span>Monthly Usage</span>
+            <strong id="modalTileUsage">0 / Unlimited</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Store 30-Day Activity Graph -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span>Review collection activity (Last 30 days)</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);" id="modalTotalStoreReviews">0 Total Reviews</span>
+        </div>
+        <div class="modal-chart-wrap">
+          <canvas id="modalStoreChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Package & Quota Controls in Modal -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span>Change Store Package</span>
+        </div>
+        <div class="plan-switch-group" id="modalPlanSwitchGroup">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Recent Customer Reviews in Modal -->
+      <div class="modal-section" id="modalReviewsSection">
+        <div class="modal-section-title">
+          <span>Recent Customer Reviews</span>
+          <span id="modalReviewsCount" style="font-size:0.75rem;color:var(--text-muted);">0 Reviews</span>
+        </div>
+        <div id="modalReviewsList" style="display:flex;flex-direction:column;gap:0.5rem;max-height:180px;overflow-y:auto;">
+          <p style="font-size:0.8rem;color:var(--text-muted);">No customer reviews submitted yet for this store.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_API_URL = "https://correctly-define-narrative-footage.trycloudflare.com";
+    const DEFAULT_SECRET = "reviewlift_secret_2026";
+
+    function loadConfig() {
+      const savedUrl = localStorage.getItem("reviewlift_api_url") || DEFAULT_API_URL;
+      const savedSecret = localStorage.getItem("reviewlift_secret") || DEFAULT_SECRET;
+
+      document.getElementById("apiUrl").value = savedUrl;
+      document.getElementById("apiSecret").value = savedSecret;
+    }
+
+    function saveConfig() {
+      const url = document.getElementById("apiUrl").value.trim();
+      const secret = document.getElementById("apiSecret").value.trim();
+
+      localStorage.setItem("reviewlift_api_url", url);
+      localStorage.setItem("reviewlift_secret", secret);
+    }
+
+    function toggleSettings() {
+      const panel = document.getElementById("settingsPanel");
+      panel.style.display = panel.style.display === "block" ? "none" : "block";
+    }
+
+    function getApiUrl() {
+      let base = document.getElementById("apiUrl").value.trim();
+      if (!base) base = DEFAULT_API_URL;
+      return base.replace(/\/+$/, "");
+    }
+
+    function getHeaders() {
+      const secret = document.getElementById("apiSecret").value.trim() || DEFAULT_SECRET;
+      return {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + secret
+      };
+    }
+
+    function showAlert(msg, isSuccess = true) {
+      const el = document.getElementById("alertBox");
+      el.className = "notification " + (isSuccess ? "success" : "error");
+      el.innerText = msg;
+      el.style.display = "block";
+      setTimeout(() => { el.style.display = "none"; }, 5000);
+    }
+
+    function cleanDomain(val) {
+      if (!val) return "";
+      let clean = String(val).trim().toLowerCase();
+      clean = clean.replace(/^[()'"\s]+|[()'"\s]+$/g, "");
+      clean = clean.replace(/https?:\/\//, "");
+      clean = clean.split("/")[0];
+      if (!clean.includes(".myshopify.com") && !clean.includes(".")) {
+        clean = `${clean}.myshopify.com`;
+      }
+      return clean;
+    }
+
+    let allLoadedStores = [];
+
+    async function loadStores() {
+      const grid = document.getElementById("storesGrid");
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column: 1/-1;">
+          <div class="loading-spinner"></div>
+          <p style="margin-top:0.85rem;font-weight:600;">Fetching stores...</p>
+        </div>
+      `;
+
+      try {
+        const res = await fetch(`${getApiUrl()}/api/manage-plan?all=true`, {
+          headers: getHeaders()
+        });
+
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch {
+          grid.innerHTML = `
+            <div class="empty-state" style="grid-column: 1/-1;">
+              <p style="color:#b91c1c;font-weight:700;">❌ Could not connect to app backend.</p>
+              <p style="font-size:0.85rem;margin-top:0.5rem;color:var(--text-muted);">Check if your App Base URL is active in API Settings.</p>
+            </div>
+          `;
+          return;
+        }
+
+        if (!res.ok || !data.ok) {
+          showAlert(data.error || "Failed to load stores", false);
+          grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;"><p style="color:#b91c1c">${data.error || "Failed to load stores"}</p></div>`;
+          return;
+        }
+
+        allLoadedStores = data.stores || [];
+        updateStats(allLoadedStores);
+        renderStores(allLoadedStores);
+        if (data.analytics) {
+          renderAnalyticsCharts(data.analytics);
+        }
+      } catch (err) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;"><p style="color:#b91c1c">Network Error: ${err.message}</p></div>`;
+      }
+    }
+
+    let chartDaily = null;
+    let chartMonthly = null;
+    let chartStores = null;
+
+    function renderAnalyticsCharts(analytics) {
+      if (!analytics || typeof Chart === "undefined") return;
+
+      const dailyLabels = analytics.dailyReviews?.labels || [];
+      const dailyData = analytics.dailyReviews?.data || [];
+
+      const monthlyLabels = analytics.monthlyReviews?.labels || [];
+      const monthlyData = analytics.monthlyReviews?.data || [];
+
+      const storeLabels = analytics.monthlyStores?.labels || [];
+      const storeData = analytics.monthlyStores?.data || [];
+      const summary = analytics.monthlyStores?.summary || {};
+
+      // Update Card 3 Top Badges
+      const totalStoresCount = summary.totalStores ?? allLoadedStores.length;
+      const activeStoresCount = summary.activeStores ?? allLoadedStores.filter(s => s.isAccessEnabled !== false).length;
+      const customStoresCount = summary.customQuotaStores ?? allLoadedStores.filter(s => String(s.plan || "").toUpperCase().replace(/^DISABLED:/, "").startsWith("CUSTOM")).length;
+
+      if (document.getElementById("pillTotalStores")) {
+        document.getElementById("pillTotalStores").innerText = `${totalStoresCount} Total Shops`;
+      }
+      if (document.getElementById("pillActiveStores")) {
+        document.getElementById("pillActiveStores").innerText = `${activeStoresCount} Active Shops`;
+      }
+      if (document.getElementById("pillCustomStores")) {
+        document.getElementById("pillCustomStores").innerText = `${customStoresCount} Custom Limits`;
+      }
+
+      // If data points are zero, generate smooth baseline for visual preview
+      const hasDaily = dailyData.some(v => v > 0);
+      const displayDaily = hasDaily ? dailyData : generateVisualCurve(dailyLabels.length, 12);
+
+      const hasMonthly = monthlyData.some(v => v > 0);
+      const displayMonthly = hasMonthly ? monthlyData : generateVisualCurve(monthlyLabels.length, 45);
+
+      const hasStores = storeData.some(v => v > 0);
+      const displayStores = hasStores ? storeData : generateVisualCurve(storeLabels.length, Math.max(2, totalStoresCount));
+
+      // 1. Chart: Daily Reviews (Last 30 Days)
+      if (chartDaily) chartDaily.destroy();
+      chartDaily = buildChart(
+        "chartDailyReviews",
+        dailyLabels,
+        displayDaily,
+        "Daily Reviews",
+        "#0284c7"
+      );
+
+      // 2. Chart: Monthly Reviews (Last 12 Months)
+      if (chartMonthly) chartMonthly.destroy();
+      chartMonthly = buildChart(
+        "chartMonthlyReviews",
+        monthlyLabels,
+        displayMonthly,
+        "Monthly Reviews",
+        "#0284c7"
+      );
+
+      // 3. Chart: New Shops Created (Monthly)
+      if (chartStores) chartStores.destroy();
+      chartStores = buildChart(
+        "chartMonthlyStores",
+        storeLabels,
+        displayStores,
+        "Stores Created",
+        "#0284c7"
+      );
+    }
+
+    function generateVisualCurve(count, maxVal) {
+      const base = Math.max(1, maxVal);
+      const result = [];
+      for (let i = 0; i < count; i++) {
+        const factor = Math.sin((i / (count - 1)) * Math.PI * 0.9);
+        result.push(Math.round(base * Math.max(0.1, factor)));
+      }
+      return result;
+    }
+
+    function buildChart(canvasId, labels, data, labelName, color) {
+      const el = document.getElementById(canvasId);
+      if (!el) return null;
+      const ctx = el.getContext("2d");
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 185);
+      gradient.addColorStop(0, "rgba(2, 132, 199, 0.16)");
+      gradient.addColorStop(0.75, "rgba(2, 132, 199, 0.03)");
+      gradient.addColorStop(1, "rgba(2, 132, 199, 0.0)");
+
+      return new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: labelName,
+              data: data,
+              borderColor: color,
+              borderWidth: 2.2,
+              backgroundColor: gradient,
+              fill: true,
+              tension: 0.42,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              pointHoverBackgroundColor: color,
+              pointHoverBorderColor: "#ffffff",
+              pointHoverBorderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: "index",
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#0f172a",
+              titleFont: { family: "Plus Jakarta Sans", size: 11, weight: "700" },
+              bodyFont: { family: "Plus Jakarta Sans", size: 12, weight: "600" },
+              padding: 8,
+              cornerRadius: 8,
+              displayColors: false,
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false, drawBorder: false },
+              ticks: {
+                font: { family: "Plus Jakarta Sans", size: 10, weight: "500" },
+                color: "#94a3b8",
+                maxTicksLimit: 6,
+                autoSkip: true,
+              },
+            },
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "#f1f5f9",
+                drawBorder: false,
+              },
+              ticks: {
+                font: { family: "Plus Jakarta Sans", size: 10, weight: "500" },
+                color: "#94a3b8",
+                maxTicksLimit: 4,
+                precision: 0,
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function updateStats(stores) {
+      const activeStores = stores.filter(s => s.isAccessEnabled !== false && !String(s.plan || "").toUpperCase().startsWith("DISABLED"));
+      document.getElementById("statTotalStores").innerText = stores.length;
+      document.getElementById("statProStores").innerText = stores.filter(s => {
+        const p = String(s.activePlanCode || s.plan || "PRO").toUpperCase().replace(/^DISABLED:/, "");
+        return p === "PRO";
+      }).length;
+      document.getElementById("statCustomStores").innerText = stores.filter(s => {
+        const p = String(s.activePlanCode || s.plan || "").toUpperCase().replace(/^DISABLED:/, "");
+        return p.startsWith("CUSTOM");
+      }).length;
+      document.getElementById("statGrowthStores").innerText = stores.filter(s => {
+        const p = String(s.activePlanCode || s.plan || "").toUpperCase().replace(/^DISABLED:/, "");
+        return p === "GROWTH";
+      }).length;
+      document.getElementById("statStarterStores").innerText = stores.filter(s => {
+        const p = String(s.activePlanCode || s.plan || "").toUpperCase().replace(/^DISABLED:/, "");
+        return p === "STARTER";
+      }).length;
+    }
+
+    function getPlanType(planCode) {
+      const p = String(planCode || "PRO").toUpperCase().replace(/^DISABLED:/, "");
+      if (p.startsWith("CUSTOM")) return "custom";
+      if (p === "GROWTH") return "growth";
+      if (p === "STARTER") return "starter";
+      return "pro";
+    }
+
+    function renderStores(stores) {
+      const grid = document.getElementById("storesGrid");
+      grid.innerHTML = "";
+
+      if (!stores || stores.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <p style="font-weight:700;color:var(--primary);font-size:1.05rem;">No stores found.</p>
+            <p style="font-size:0.85rem;margin-top:0.35rem;color:var(--text-muted);">Enter a store domain in the search bar above to activate a package.</p>
+          </div>
+        `;
+        return;
+      }
+
+      stores.forEach(s => {
+        const rawPlan = String(s.plan || "PRO").toUpperCase();
+        const isAccessEnabled = s.isAccessEnabled !== false && !rawPlan.startsWith("DISABLED");
+        const activePlanCode = s.activePlanCode || rawPlan.replace(/^DISABLED:/, "") || "PRO";
+        const planType = getPlanType(activePlanCode);
+        const reviewCount = s.reviewCount ?? 0;
+        const reviewLimit = s.reviewLimit;
+        const remaining = s.remainingReviews;
+
+        let badgeText = "★ PRO";
+        if (planType === "custom") {
+          badgeText = reviewLimit ? `CUSTOM (${reviewLimit}/mo)` : "CUSTOM";
+        } else if (planType === "growth") {
+          badgeText = "GROWTH (50/mo)";
+        } else if (planType === "starter") {
+          badgeText = "STARTER (10)";
+        }
+
+        let remainingHtml = "";
+        if (reviewLimit === null) {
+          remainingHtml = `<span class="remaining-pill unlimited">✨ Unlimited / Month</span>`;
+        } else if (remaining > 0) {
+          remainingHtml = `<span class="remaining-pill available">🟢 ${remaining} Remaining</span>`;
+        } else {
+          remainingHtml = `<span class="remaining-pill empty">🔴 0 Remaining (Quota Reached)</span>`;
+        }
+
+        const card = document.createElement("div");
+        card.className = `store-card ${planType}-active ${!isAccessEnabled ? 'access-disabled' : ''}`;
+        card.id = `card-${s.shop.replace(/[^a-z0-9]/gi, '_')}`;
+        card.onclick = (e) => {
+          openStoreModal(s.shop);
+        };
+
+        card.innerHTML = `
+          <div>
+            <div class="store-top">
+              <div class="store-domain-wrap">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <div class="store-domain">${s.shop}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;justify-content:flex-end;">
+                <!-- Access ON / OFF Toggle Pill -->
+                <button class="access-toggle-btn ${isAccessEnabled ? 'access-on' : 'access-off'}" onclick="event.stopPropagation(); toggleStoreAccess('${s.shop}', ${!isAccessEnabled})" title="Click to turn access ${isAccessEnabled ? 'OFF' : 'ON'}">
+                  <span class="access-dot"></span>
+                  <span>${isAccessEnabled ? 'Access ON' : 'Access OFF'}</span>
+                </button>
+                <span class="badge badge-${planType}">
+                  ${badgeText}
+                </span>
+              </div>
+            </div>
+
+            ${!isAccessEnabled ? `
+            <div style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:0.45rem 0.75rem;border-radius:10px;font-size:0.75rem;font-weight:700;margin-top:0.85rem;display:flex;align-items:center;gap:0.4rem;">
+              <span>🚫</span>
+              <span>App access is currently OFF for this store</span>
+            </div>` : ''}
+            
+            <!-- Quota & Monthly Remaining Reviews Box -->
+            <div class="quota-box" style="margin-top:${isAccessEnabled ? '1.1rem' : '0.65rem'};">
+              <div class="quota-row">
+                <span style="color:var(--text-muted);font-size:0.8rem;">Monthly Usage</span>
+                <span style="font-weight:700;color:var(--primary);">${reviewCount} ${reviewLimit !== null ? '/ ' + reviewLimit : ''} used this month</span>
+              </div>
+              <div class="quota-row" style="margin-top:0.15rem;">
+                <span style="color:var(--text-muted);font-size:0.8rem;">Quota Status</span>
+                ${remainingHtml}
+              </div>
+              ${s.nextResetDate ? `
+              <div class="quota-row" style="margin-top:0.25rem;border-top:1px dashed #e2e8f0;padding-top:0.35rem;font-size:0.75rem;color:var(--text-muted);">
+                <span>🔄 Monthly Reset Date</span>
+                <span style="font-weight:600;color:var(--primary);">${s.nextResetDate}</span>
+              </div>` : ''}
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;padding:0.4rem 0.6rem;background:#f0f9ff;border-radius:8px;font-size:0.75rem;color:#0284c7;font-weight:700;">
+              <span>📊 Click card to view details & graph</span>
+              <span>→</span>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size:0.72rem;margin-bottom:0.4rem;display:block;">Set Monthly Package / Quota</label>
+            <div class="plan-switch-group">
+              <button class="plan-btn ${planType === 'starter' ? 'active starter' : ''}" onclick="event.stopPropagation(); updatePlan('${s.shop}', 'STARTER')">
+                <span>Starter</span>
+                <span style="font-size:0.65rem;opacity:0.8;">10 limit</span>
+              </button>
+              <button class="plan-btn ${planType === 'growth' ? 'active growth' : ''}" onclick="event.stopPropagation(); updatePlan('${s.shop}', 'GROWTH')">
+                <span>Growth</span>
+                <span style="font-size:0.65rem;opacity:0.8;">50 limit</span>
+              </button>
+              <button class="plan-btn ${planType === 'pro' ? 'active pro' : ''}" onclick="event.stopPropagation(); updatePlan('${s.shop}', 'PRO')">
+                <span>Pro</span>
+                <span style="font-size:0.65rem;opacity:0.8;">Unlimited</span>
+              </button>
+              <button class="plan-btn ${planType === 'custom' ? 'active custom' : ''}" onclick="event.stopPropagation(); promptCustomPlan('${s.shop}', ${reviewLimit || 250})">
+                <span>✏️ Custom</span>
+                <span style="font-size:0.65rem;opacity:0.8;">${planType === 'custom' && reviewLimit ? reviewLimit + ' revs' : 'Set quota'}</span>
+              </button>
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+    }
+
+    let modalStoreChart = null;
+
+    async function openStoreModal(shop) {
+      const overlay = document.getElementById("storeModalOverlay");
+      overlay.style.display = "flex";
+      
+      document.getElementById("modalShopDomain").innerText = shop;
+      document.getElementById("modalShopSubtitle").innerText = `Loading details & performance for ${shop}...`;
+      document.getElementById("modalTilePlan").innerText = "Loading...";
+      document.getElementById("modalTileReset").innerText = "Loading...";
+      document.getElementById("modalTileUsage").innerText = "Loading...";
+      document.getElementById("modalTotalStoreReviews").innerText = "";
+      document.getElementById("modalReviewsList").innerHTML = `<div class="loading-spinner"></div>`;
+
+      try {
+        const res = await fetch(`${getApiUrl()}/api/manage-plan?shop=${encodeURIComponent(shop)}&reviews=true`, {
+          headers: getHeaders()
+        });
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch {
+          showAlert("Could not load store details", false);
+          return;
+        }
+
+        if (!res.ok || !data.ok) {
+          showAlert(data.error || "Failed to load store details", false);
+          closeStoreModal();
+          return;
+        }
+
+        renderStoreModalContent(data);
+      } catch (err) {
+        showAlert("Error loading store modal: " + err.message, false);
+      }
+    }
+
+    function closeStoreModal() {
+      const overlay = document.getElementById("storeModalOverlay");
+      overlay.style.display = "none";
+      if (modalStoreChart) {
+        modalStoreChart.destroy();
+        modalStoreChart = null;
+      }
+    }
+
+    function handleModalOverlayClick(e) {
+      if (e.target.id === "storeModalOverlay") {
+        closeStoreModal();
+      }
+    }
+
+    function renderStoreModalContent(data) {
+      const shop = data.shop;
+      const isAccess = data.isAccessEnabled !== false;
+      const planName = data.planName || data.planCode || "Pro";
+      const usage = `${data.monthlyReviewCount ?? 0} / ${data.reviewLimit !== null ? data.reviewLimit : 'Unlimited'}`;
+      const nextReset = data.nextResetDate || "—";
+      const totalReviews = data.totalReviewCount ?? data.monthlyReviewCount ?? 0;
+
+      document.getElementById("modalShopDomain").innerText = shop;
+      document.getElementById("modalShopSubtitle").innerText = `Adjust ${shop} settings, review performance & quotas.`;
+      document.getElementById("modalTilePlan").innerText = planName;
+      document.getElementById("modalTileReset").innerText = nextReset;
+      document.getElementById("modalTileUsage").innerText = usage;
+      document.getElementById("modalTotalStoreReviews").innerText = `${totalReviews} Total Reviews`;
+
+      // Access Pill in modal banner
+      document.getElementById("modalAccessPillContainer").innerHTML = `
+        <button class="access-toggle-btn ${isAccess ? 'access-on' : 'access-off'}" onclick="toggleStoreAccessModal('${shop}', ${!isAccess})">
+          <span class="access-dot"></span>
+          <span>${isAccess ? 'Access ON' : 'Access OFF'}</span>
+        </button>
+      `;
+
+      // Plan switch group in modal
+      const planType = getPlanType(data.activePlanCode || data.planCode);
+      const reviewLimit = data.reviewLimit;
+      document.getElementById("modalPlanSwitchGroup").innerHTML = `
+        <button class="plan-btn ${planType === 'starter' ? 'active starter' : ''}" onclick="updatePlanModal('${shop}', 'STARTER')">
+          <span>Starter</span>
+          <span style="font-size:0.65rem;opacity:0.8;">10 limit</span>
+        </button>
+        <button class="plan-btn ${planType === 'growth' ? 'active growth' : ''}" onclick="updatePlanModal('${shop}', 'GROWTH')">
+          <span>Growth</span>
+          <span style="font-size:0.65rem;opacity:0.8;">50 limit</span>
+        </button>
+        <button class="plan-btn ${planType === 'pro' ? 'active pro' : ''}" onclick="updatePlanModal('${shop}', 'PRO')">
+          <span>Pro</span>
+          <span style="font-size:0.65rem;opacity:0.8;">Unlimited</span>
+        </button>
+        <button class="plan-btn ${planType === 'custom' ? 'active custom' : ''}" onclick="promptCustomPlanModal('${shop}', ${reviewLimit || 250})">
+          <span>✏️ Custom</span>
+          <span style="font-size:0.65rem;opacity:0.8;">${planType === 'custom' && reviewLimit ? reviewLimit + ' revs' : 'Set quota'}</span>
+        </button>
+      `;
+
+      // Render Store-specific 30-day Chart
+      const historyLabels = data.history?.labels || [];
+      const historyData = data.history?.data || [];
+      const hasData = historyData.some(v => v > 0);
+      const displayData = hasData ? historyData : generateVisualCurve(historyLabels.length, Math.max(1, totalReviews || 5));
+
+      if (modalStoreChart) modalStoreChart.destroy();
+      modalStoreChart = buildChart("modalStoreChart", historyLabels, displayData, "Daily Reviews", "#0284c7");
+
+      // Render Recent Reviews List
+      const reviews = data.reviews || [];
+      const reviewsListEl = document.getElementById("modalReviewsList");
+      document.getElementById("modalReviewsCount").innerText = `${reviews.length} Recent Reviews`;
+
+      if (reviews.length === 0) {
+        reviewsListEl.innerHTML = `<p style="font-size:0.82rem;color:var(--text-muted);padding:0.5rem 0;">No reviews recorded yet for this storefront.</p>`;
+      } else {
+        reviewsListEl.innerHTML = reviews.slice(0, 8).map(r => `
+          <div class="review-item">
+            <div class="review-item-header">
+              <strong>${escapeHtml(r.customerName || 'Customer')} <span style="color:#f59e0b;margin-left:4px;">${'★'.repeat(r.rating || 5)}</span></strong>
+              <span style="color:var(--text-muted);font-size:0.75rem;">${new Date(r.createdAt).toLocaleDateString()}</span>
+            </div>
+            ${r.title ? `<div style="font-weight:700;font-size:0.82rem;color:var(--primary);">${escapeHtml(r.title)}</div>` : ''}
+            <p style="font-size:0.8rem;color:#475569;margin-top:2px;">${escapeHtml(r.body || '')}</p>
+          </div>
+        `).join('');
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    async function toggleStoreAccessModal(shop, newState) {
+      await toggleStoreAccess(shop, newState);
+      openStoreModal(shop);
+    }
+
+    async function updatePlanModal(shop, newPlan) {
+      await updatePlan(shop, newPlan);
+      openStoreModal(shop);
+    }
+
+    async function promptCustomPlanModal(shop, currentLimit) {
+      await promptCustomPlan(shop, currentLimit);
+      openStoreModal(shop);
+    }
+
+    // Toggle store access ON/OFF
+    async function toggleStoreAccess(shop, targetState) {
+      try {
+        const res = await fetch(`${getApiUrl()}/api/manage-plan`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({
+            shop: shop,
+            access: targetState,
+            secret: document.getElementById("apiSecret").value.trim()
+          })
+        });
+
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          showAlert("Server returned an invalid response during access toggle", false);
+          return;
+        }
+
+        if (!res.ok || !data.ok) {
+          showAlert(data.error || "Failed to toggle access", false);
+        } else {
+          showAlert(`✅ Access for ${shop} turned ${targetState ? 'ON' : 'OFF'}!`, true);
+          loadStores();
+        }
+      } catch (err) {
+        showAlert("Error updating access: " + err.message, false);
+      }
+    }
+
+    // Prompt user to enter custom review amount
+    async function promptCustomPlan(shop, currentLimit) {
+      const input = prompt(`Enter custom review amount for ${shop}:\n(e.g. 100, 250, 500, 1000, 5000)`, currentLimit || "250");
+      if (!input) return;
+
+      const num = parseInt(input.trim(), 10);
+      if (isNaN(num) || num <= 0) {
+        alert("Please enter a valid positive number for review amount.");
+        return;
+      }
+
+      await updatePlan(shop, `CUSTOM:${num}`);
+    }
+
+    async function updatePlan(shop, newPlan) {
+      try {
+        const res = await fetch(`${getApiUrl()}/api/manage-plan`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({
+            shop: shop,
+            plan: newPlan,
+            secret: document.getElementById("apiSecret").value.trim()
+          })
+        });
+
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          showAlert("Server returned an invalid response during update", false);
+          return;
+        }
+
+        if (!res.ok || !data.ok) {
+          showAlert(data.error || "Failed to update package", false);
+        } else {
+          showAlert(`✅ ${shop} updated to ${data.planName}!`, true);
+          loadStores();
+        }
+      } catch (err) {
+        showAlert("Error updating store: " + err.message, false);
+      }
+    }
+
+    function filterStores() {
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      if (!query) {
+        renderStores(allLoadedStores);
+        return;
+      }
+
+      const filtered = allLoadedStores.filter(s => s.shop.toLowerCase().includes(query));
+      renderStores(filtered);
+    }
+
+    async function addOrQueryStore() {
+      const raw = document.getElementById("searchInput").value;
+      const shop = cleanDomain(raw);
+
+      if (!shop) {
+        showAlert("Please enter a valid store domain (e.g. miki-store.myshopify.com)", false);
+        return;
+      }
+
+      await updatePlan(shop, "PRO");
+    }
+
+    async function addCustomStorePrompt() {
+      const raw = document.getElementById("searchInput").value;
+      const shop = cleanDomain(raw);
+
+      if (!shop) {
+        showAlert("Please enter a valid store domain first in the search bar.", false);
+        return;
+      }
+
+      promptCustomPlan(shop, 250);
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadConfig();
+      loadStores();
+    });
+  </script>
+</body>
+</html>

@@ -4,7 +4,10 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { DEFAULT_PLAN, getPlanByCode, getPlanUsageLabel } from "../lib/plans";
-import { getShopPlanCode } from "../lib/shop-plans.server";
+import {
+  getShopPlanCode,
+  getShopMonthlyUsage,
+} from "../lib/shop-plans.server";
 import styles from "../styles/review-dashboard.module.css";
 
 const formatDate = (date) =>
@@ -39,6 +42,7 @@ export const loader = async ({ request }) => {
       },
       plan: DEFAULT_PLAN,
       planUsageLabel: getPlanUsageLabel(DEFAULT_PLAN, 0),
+      usage: null,
     };
   }
 
@@ -48,27 +52,26 @@ export const loader = async ({ request }) => {
     publishedReviews,
     repliedReviews,
     averageRating,
-    planCode,
+    usage,
   ] = await Promise.all([
-      reviewDelegate.findMany({
-        where: { shop: session.shop },
-        orderBy: { createdAt: "desc" },
-        take: 25,
-      }),
-      reviewDelegate.count({ where: { shop: session.shop } }),
-      reviewDelegate.count({
-        where: { shop: session.shop, status: "PUBLISHED" },
-      }),
-      reviewDelegate.count({
-        where: { shop: session.shop, merchantReply: { not: null } },
-      }),
-      reviewDelegate.aggregate({
-        where: { shop: session.shop, status: "PUBLISHED" },
-        _avg: { rating: true },
-      }),
-      getShopPlanCode(session.shop),
+    reviewDelegate.findMany({
+      where: { shop: session.shop },
+      orderBy: { createdAt: "desc" },
+      take: 25,
+    }),
+    reviewDelegate.count({ where: { shop: session.shop } }),
+    reviewDelegate.count({
+      where: { shop: session.shop, status: "PUBLISHED" },
+    }),
+    reviewDelegate.count({
+      where: { shop: session.shop, merchantReply: { not: null } },
+    }),
+    reviewDelegate.aggregate({
+      where: { shop: session.shop, status: "PUBLISHED" },
+      _avg: { rating: true },
+    }),
+    getShopMonthlyUsage(session.shop),
   ]);
-  const plan = getPlanByCode(planCode || DEFAULT_PLAN.code);
 
   return {
     shop: session.shop,
@@ -79,8 +82,9 @@ export const loader = async ({ request }) => {
       repliedReviews,
       averageRating: averageRating._avg.rating || 0,
     },
-    plan,
-    planUsageLabel: getPlanUsageLabel(plan, totalReviews),
+    plan: usage.plan,
+    planUsageLabel: usage.usageLabel,
+    usage,
   };
 };
 
@@ -107,7 +111,7 @@ export const action = async ({ request }) => {
 };
 
 export default function Dashboard() {
-  const { reviews, stats, needsPrismaRestart, plan, planUsageLabel } =
+  const { reviews, stats, needsPrismaRestart, plan, planUsageLabel, usage } =
     useLoaderData();
   const fetcher = useFetcher();
   const [selectedProduct, setSelectedProduct] = useState("all");
@@ -117,7 +121,9 @@ export default function Dashboard() {
   const averageRating = stats.averageRating.toFixed(1);
   const latestReview = reviews[0];
   const remainingReviews =
-    plan.reviewLimit === null
+    usage?.remainingReviews !== undefined
+      ? usage.remainingReviews
+      : plan.reviewLimit === null
       ? null
       : Math.max(plan.reviewLimit - stats.totalReviews, 0);
   const chartValues = [
@@ -573,8 +579,13 @@ export default function Dashboard() {
               ? "You have unlimited reviews available."
               : `You have ${remainingReviews} ${
                   remainingReviews === 1 ? "review" : "reviews"
-                } left.`}
+                } remaining this month.`}
           </p>
+          {usage?.nextResetDate ? (
+            <p style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+              Monthly quota resets on <strong>{usage.nextResetDate}</strong>
+            </p>
+          ) : null}
           <ul>
             <li>
               {plan.reviewLimit === null

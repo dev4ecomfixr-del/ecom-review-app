@@ -122,7 +122,7 @@ import {
   getPlanByCode,
   isPlanAtLeast,
 } from "../lib/plans";
-import { getShopPlanCode } from "../lib/shop-plans.server";
+import { getShopPlanCode, getShopMonthlyUsage } from "../lib/shop-plans.server";
 import {
   getReviewRewardSettings,
 } from "../lib/app-feature-metafields.server";
@@ -430,16 +430,22 @@ export const action = async ({ request }) => {
     );
   }
 
-  const [shopPlan, reviewCount] = await Promise.all([
-    getShopPlanCode(shop),
-    db.review.count({ where: { shop } }),
-  ]);
-  const plan = getPlanByCode(shopPlan || DEFAULT_PLAN.code);
+  const usage = await getShopMonthlyUsage(shop);
+  const plan = usage.plan;
 
-  if (plan.reviewLimit !== null && reviewCount >= plan.reviewLimit) {
+  if (usage.isAccessEnabled === false || plan.isAccessEnabled === false || plan.code.toUpperCase().startsWith("DISABLED")) {
     return json(
       {
-        error: `${plan.name} plan limit reached. Upgrade to collect more reviews.`,
+        error: "Review collection is currently paused for this store.",
+      },
+      { status: 403 },
+    );
+  }
+
+  if (plan.reviewLimit !== null && usage.monthlyReviewCount >= plan.reviewLimit) {
+    return json(
+      {
+        error: `${plan.name} monthly limit reached (${usage.monthlyReviewCount}/${plan.reviewLimit}). Quota resets on ${usage.nextResetDate}. Upgrade or increase quota to collect more reviews.`,
       },
       { status: 403 },
     );
