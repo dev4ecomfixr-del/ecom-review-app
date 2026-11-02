@@ -47,21 +47,6 @@
   line-height: 1;
 }
 
-.ecom-reviewer-vibe__verified::before {
-  content: "✓";
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: var(--erv-accent, #d7a33a);
-  color: var(--erv-bg, #11100c);
-  font-size: 10px;
-  font-weight: 900;
-  line-height: 1;
-}
-
 .ecom-reviewer-vibe__stars {
   flex: 0 0 auto;
   color: var(--erv-star, #d7a33a);

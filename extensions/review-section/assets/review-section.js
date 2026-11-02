@@ -252,7 +252,6 @@
                   <b>${escapeHtml(getInitials(review.customerName))}</b>
                   <div>
                     <strong>${escapeHtml(review.customerName || "Customer")}</strong>
-                    <small><span>✓</span> Verified buyer</small>
                   </div>
                 </div>
                 <div class="ecom-reviewer__stars" aria-label="${review.rating} out of 5 stars">${stars(review.rating)}</div>

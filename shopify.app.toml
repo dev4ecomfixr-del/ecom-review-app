@@ -6,7 +6,7 @@ application_url = "https://review-lift.ecomfixr.com"
 embedded = true
 
 [webhooks]
-api_version = "2026-07"
+api_version = "2025-10"
 
   [[webhooks.subscriptions]]
   uri = "/webhooks/app/scopes_update"
@@ -25,7 +25,11 @@ api_version = "2026-07"
 scopes = "read_customers,read_discounts,read_files,write_customers,write_discounts,write_files,write_metaobject_definitions,write_metaobjects,write_products"
 
 [auth]
-redirect_urls = [ "https://review-lift.ecomfixr.com/api/auth" ]
+redirect_urls = [
+  "https://review-lift.ecomfixr.com/auth/callback",
+  "https://review-lift.ecomfixr.com/auth/shopify/callback",
+  "https://review-lift.ecomfixr.com/api/auth"
+]
 
 [app_proxy]
 url = "https://review-lift.ecomfixr.com/api/reviews"

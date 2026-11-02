@@ -199,7 +199,7 @@ export default function Widgets() {
                 <p className={styles.eyebrow}>Storefront customer feedback</p>
                 <h2>Review section</h2>
                 <p>
-                  Present ratings, verified customer feedback, and review media
+                  Present ratings, customer feedback, and review media
                   in a polished product-page experience.
                 </p>
               </div>
@@ -255,7 +255,7 @@ export default function Widgets() {
                   <span>⌕ Search reviews</span>
                   <span>Sort: Newest⌄</span>
                   <span>All ratings⌄</span>
-                  <small><b>84</b> reviews shown · ✓ Verified feedback</small>
+                  <small><b>84</b> reviews shown · Customer feedback</small>
                 </div>
                 <div className={`${styles.reviewLayoutPreview} ${
                   reviewSection.cardLayout === "layout-2" ? styles.reviewLayoutTwo : ""
@@ -280,7 +280,6 @@ export default function Widgets() {
                     <div>
                       <span className={styles.reviewPreviewAvatar}>AW</span>
                       <strong>Amelia Wilson</strong>
-                      <em>Verified buyer</em>
                     </div>
                     <span className={styles.reviewPreviewStars}>★★★★★</span>
                     <h4>Beautiful quality</h4>
@@ -291,7 +290,6 @@ export default function Widgets() {
                     <div>
                       <span className={styles.reviewPreviewAvatar}>JM</span>
                       <strong>James Miller</strong>
-                      <em>Verified buyer</em>
                     </div>
                     <span className={styles.reviewPreviewStars}>★★★★★</span>
                     <h4>Excellent experience</h4>
