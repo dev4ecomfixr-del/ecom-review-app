@@ -1365,46 +1365,54 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
 .ecom-reviewer__carousel-controls span {
   color: var(--ecom-reviewer-muted-color, #657169);
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .ecom-reviewer__carousel-controls button {
-  display: grid;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 38px;
   height: 38px;
   padding: 0;
-  place-items: center;
-  border: 1px solid #dce3df;
+  border: 0;
   border-radius: 50%;
-  background: #ffffff;
-  color: var(--ecom-reviewer-heading-color, #111111);
+  background: #000000;
+  color: #ffffff;
   cursor: pointer;
-  font: inherit;
-  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+  transition: all 180ms ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.ecom-reviewer__carousel-controls button svg {
+  width: 17px;
+  height: 17px;
+  display: block;
 }
 
 .ecom-reviewer__carousel-controls button:hover {
-  border-color: var(--ecom-reviewer-accent, #a8ef00);
-  background: color-mix(in srgb, var(--ecom-reviewer-accent, #a8ef00) 10%, #ffffff);
+  background: #262626;
+  color: #ffffff;
   transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .ecom-reviewer__pagination {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 12px;
   width: 100%;
-  margin-top: 24px;
-  padding: 8px 0;
+  margin-top: 28px;
+  padding: 12px 0 4px;
 }
 
 .ecom-reviewer__toolbar {
@@ -1418,7 +1426,7 @@
 .ecom-reviewer__pagination-pages {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   max-width: min(100%, 720px);
   overflow-x: auto;
   scrollbar-width: none;
@@ -1429,60 +1437,95 @@
 }
 
 .ecom-reviewer__pagination > button {
-  display: grid;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
   padding: 0;
-  place-items: center;
-  border: 1px solid #d9e0dc;
+  border: 0;
   border-radius: 50%;
-  background: #ffffff;
-  color: #17211c;
+  background: #000000;
+  color: #ffffff;
   cursor: pointer;
-  font-family: inherit;
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1;
-  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+  transition: all 180ms ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
-.ecom-reviewer__pagination-pages button {
-  display: grid;
-  flex: 0 0 34px;
-  width: 34px;
-  height: 40px;
-  padding: 0;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  background: transparent;
-  color: #59645e;
-  cursor: pointer;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 650;
-  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+.ecom-reviewer__pagination > button svg {
+  width: 17px;
+  height: 17px;
+  display: block;
 }
 
-.ecom-reviewer__pagination button:not(:disabled):hover {
-  border-color: var(--ecom-reviewer-accent, #a8ef00);
-  background: color-mix(in srgb, var(--ecom-reviewer-accent, #a8ef00) 10%, #ffffff);
+.ecom-reviewer__pagination > [data-review-page-prev] svg {
+  margin-left: -1px;
+}
+
+.ecom-reviewer__pagination > [data-review-page-next] svg {
+  margin-right: -1px;
 }
 
 .ecom-reviewer__pagination > button:not(:disabled):hover {
+  background: #262626;
+  color: #ffffff;
   transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.ecom-reviewer__pagination > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+  background: #000000;
+  color: #ffffff;
+  box-shadow: none;
+  transform: none;
+}
+
+.ecom-reviewer__pagination-pages button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  transition: all 160ms ease;
+}
+
+.ecom-reviewer__pagination-pages button:not(.is-active):hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 .ecom-reviewer__pagination-pages button.is-active {
-  border-color: #050706;
-  background: #050706;
+  border-color: #0f172a;
+  background: #0f172a;
   color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
 }
 
-.ecom-reviewer__pagination button:disabled {
-  cursor: not-allowed;
-  opacity: 0.38;
+.ecom-reviewer__pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 38px;
+  color: #94a3b8;
+  font-size: 16px;
+  font-weight: 700;
+  user-select: none;
 }
 
 .ecom-reviewer--layout-5 .ecom-reviewer__list,

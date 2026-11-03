@@ -304,15 +304,54 @@
       renderReviews(reviews.slice(pageStart, pageStart + reviewsPerPage));
       if (pagination) pagination.hidden = reviews.length <= reviewsPerPage;
       if (paginationPages) {
-        paginationPages.innerHTML = Array.from({ length: totalPages }, (_, index) => `
-          <button
-            aria-label="Go to review page ${index + 1}"
-            aria-current="${index === currentReviewPage ? "page" : "false"}"
-            class="${index === currentReviewPage ? "is-active" : ""}"
-            data-review-page="${index}"
-            type="button"
-          >${index + 1}</button>
-        `).join("");
+        const getPageItems = (current, total) => {
+          if (total <= 7) {
+            return Array.from({ length: total }, (_, i) => i);
+          }
+          if (current <= 3) {
+            return [0, 1, 2, 3, 4, "ellipsis", total - 1];
+          }
+          if (current >= total - 4) {
+            return [
+              0,
+              "ellipsis",
+              total - 5,
+              total - 4,
+              total - 3,
+              total - 2,
+              total - 1,
+            ];
+          }
+          return [
+            0,
+            "ellipsis",
+            current - 1,
+            current,
+            current + 1,
+            "ellipsis",
+            total - 1,
+          ];
+        };
+
+        const pageItems = getPageItems(currentReviewPage, totalPages);
+
+        paginationPages.innerHTML = pageItems
+          .map((item) => {
+            if (item === "ellipsis") {
+              return '<span class="ecom-reviewer__pagination-ellipsis" aria-hidden="true">…</span>';
+            }
+            const isActive = item === currentReviewPage;
+            return `
+              <button
+                aria-label="Go to review page ${item + 1}"
+                aria-current="${isActive ? "page" : "false"}"
+                class="${isActive ? "is-active" : ""}"
+                data-review-page="${item}"
+                type="button"
+              >${item + 1}</button>
+            `;
+          })
+          .join("");
       }
       if (pagePrevious) pagePrevious.disabled = currentReviewPage === 0;
       if (pageNext) pageNext.disabled = currentReviewPage >= totalPages - 1;
