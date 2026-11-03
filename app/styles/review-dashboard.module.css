@@ -550,6 +550,24 @@
   background: #f1f5f9;
 }
 
+.photoThumbProcessing {
+  width: 76px;
+  height: 76px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
 .replyEditor { margin: 12px 0 16px; }
 .replyEditor summary { width: max-content; color: #0f6f54; cursor: pointer; font-size: 13px; font-weight: 800; }
 .replyEditor form { display: grid; gap: 9px; margin-top: 10px; padding: 14px; border: 1px solid rgba(15,123,93,.14); border-radius: 8px; background: #f8fbfa; }

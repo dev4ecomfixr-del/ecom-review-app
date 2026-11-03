@@ -480,12 +480,23 @@ export default function Dashboard() {
                         <div className={styles.photoGrid}>
                           {review.photos.map((photo) =>
                             photo.mediaType === "VIDEO" ? (
-                              <video
-                                key={photo.id}
-                                src={photo.url}
-                                controls
-                                className={styles.photoThumb}
-                              />
+                              photo.url ? (
+                                <video
+                                  key={photo.id}
+                                  src={photo.url}
+                                  controls
+                                  preload="metadata"
+                                  className={styles.photoThumb}
+                                />
+                              ) : (
+                                <div
+                                  key={photo.id}
+                                  className={styles.photoThumbProcessing}
+                                  title="Video is being processed by Shopify"
+                                >
+                                  <span>⏳ Video processing</span>
+                                </div>
+                              )
                             ) : (
                               <a
                                 key={photo.id}
