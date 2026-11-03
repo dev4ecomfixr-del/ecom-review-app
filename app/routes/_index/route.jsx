@@ -48,8 +48,8 @@ export default function App() {
             <p>Showcase customer ratings, reviews, photos, and videos in customizable carousels.</p>
           </li>
           <li>
-            <strong>Review Rewards</strong>
-            <p>Motivate customers to share feedback with automatic discount coupons.</p>
+            <strong>Content Moderation</strong>
+            <p>Automatically filter inappropriate words, promotional links, and spam.</p>
           </li>
           <li>
             <strong>Theme App Blocks</strong>

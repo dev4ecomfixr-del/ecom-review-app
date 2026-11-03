@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useFetcher, useLoaderData } from "react-router";
+import { redirect, useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import db from "../db.server";
@@ -22,7 +22,8 @@ const renderRewardHeading = (heading, discountValue) =>
   );
 
 export const loader = async ({ request }) => {
-  const { admin, session } = await authenticate.admin(request);
+  await authenticate.admin(request);
+  return redirect("/app");
   await cleanupExpiredReviewCoupons(admin, session.shop);
   const [settings, coupons, total, active, deleted] = await Promise.all([
     getReviewRewardSettings(admin),
