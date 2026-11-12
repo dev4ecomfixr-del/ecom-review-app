@@ -1093,11 +1093,16 @@
   </div>
 
   <script>
-    const DEFAULT_API_URL = "https://correctly-define-narrative-footage.trycloudflare.com";
+    const DEFAULT_API_URL = typeof window !== "undefined" && window.location.origin && window.location.origin !== "null"
+      ? window.location.origin
+      : "https://review-lift-miki.ecomfixr.com";
     const DEFAULT_SECRET = "reviewlift_secret_2026";
 
     function loadConfig() {
-      const savedUrl = localStorage.getItem("reviewlift_api_url") || DEFAULT_API_URL;
+      let savedUrl = localStorage.getItem("reviewlift_api_url");
+      if (!savedUrl || (savedUrl.includes("trycloudflare.com") && !window.location.origin.includes("trycloudflare.com"))) {
+        savedUrl = DEFAULT_API_URL;
+      }
       const savedSecret = localStorage.getItem("reviewlift_secret") || DEFAULT_SECRET;
 
       document.getElementById("apiUrl").value = savedUrl;
