@@ -6,6 +6,8 @@
   data-position="{{ block.settings.position }}"
   data-primary-color="{{ block.settings.primary_color }}"
   data-app-url="{{ block.settings.app_url }}"
+  data-currency="{{ cart.currency.iso_code | default: shop.currency | default: 'BDT' | escape }}"
+  data-currency-symbol="{{ cart.currency.symbol | default: 'BDT' | escape }}"
   style="--rl-reward-primary: {{ block.settings.primary_color }}; --rl-reward-text: {{ block.settings.text_color }};"
 >
   {% if block.settings.enable_floating_launcher %}

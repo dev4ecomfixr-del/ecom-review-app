@@ -18,8 +18,8 @@ const DEFAULT_REWARD_POINT_SETTINGS = {
   minSpend: 0,
   pointUnitName: "Points",
   redemptionTiers: [
-    { points: 100, type: "FIXED_AMOUNT", value: 5, label: "$5 off" },
-    { points: 200, type: "FIXED_AMOUNT", value: 10, label: "$10 off" },
+    { points: 100, type: "FIXED_AMOUNT", value: 5, label: "BDT 5 off" },
+    { points: 200, type: "FIXED_AMOUNT", value: 10, label: "BDT 10 off" },
     { points: 500, type: "PERCENTAGE", value: 25, label: "25% off" },
   ],
   couponLifetimeDays: 30,
@@ -177,7 +177,7 @@ export default function RewardPoints() {
     if (field === "type" || field === "value") {
       const type = field === "type" ? value : updatedTiers[index].type;
       const val = field === "value" ? value : updatedTiers[index].value;
-      updatedTiers[index].label = type === "PERCENTAGE" ? `${val}% off` : `$${val} off`;
+      updatedTiers[index].label = type === "PERCENTAGE" ? `${val}% off` : `BDT ${val} off`;
     }
 
     setSettings((prev) => ({ ...prev, redemptionTiers: updatedTiers }));
@@ -189,7 +189,7 @@ export default function RewardPoints() {
       points: 100,
       type: "FIXED_AMOUNT",
       value: 5,
-      label: "$5 off",
+      label: "BDT 5 off",
     };
     setSettings((prev) => ({
       ...prev,
@@ -328,7 +328,7 @@ export default function RewardPoints() {
 
             <div className={styles.formGrid}>
               <div className={styles.formGroup}>
-                <label>Points Earned per $1 Spent</label>
+                <label>Points Earned per 1 BDT Spent</label>
                 <input
                   type="number"
                   min="1"
@@ -336,11 +336,11 @@ export default function RewardPoints() {
                   value={settings.pointsPerDollar}
                   onChange={(e) => handleSettingChange("pointsPerDollar", Number(e.target.value))}
                 />
-                <span className={styles.formHelp}>Example: 1 means a $50 purchase awards 50 points.</span>
+                <span className={styles.formHelp}>Example: 1 means a 50 BDT purchase awards 50 points.</span>
               </div>
 
               <div className={styles.formGroup}>
-                <label>Minimum Order Spend Threshold ($)</label>
+                <label>Minimum Order Spend Threshold (BDT)</label>
                 <input
                   type="number"
                   min="0"
@@ -413,7 +413,7 @@ export default function RewardPoints() {
                           value={tier.type}
                           onChange={(e) => handleTierChange(index, "type", e.target.value)}
                         >
-                          <option value="FIXED_AMOUNT">Fixed Amount ($)</option>
+                          <option value="FIXED_AMOUNT">Fixed Amount (BDT)</option>
                           <option value="PERCENTAGE">Percentage (%)</option>
                         </select>
                       </div>
@@ -510,7 +510,7 @@ export default function RewardPoints() {
                         </td>
                         <td>{acc.totalPointsEarned.toLocaleString()}</td>
                         <td>{acc.totalPointsRedeemed.toLocaleString()}</td>
-                        <td>${(acc.totalSpend || 0).toFixed(2)}</td>
+                        <td>BDT {(acc.totalSpend || 0).toFixed(2)}</td>
                         <td>{acc.orderCount || 0}</td>
                         <td>
                           <button
@@ -577,7 +577,7 @@ export default function RewardPoints() {
                         <td>
                           {coupon.discountType === "PERCENTAGE"
                             ? `${coupon.discountValue}% off`
-                            : `$${coupon.discountValue} off`}
+                            : `BDT ${coupon.discountValue} off`}
                         </td>
                         <td>
                           <span

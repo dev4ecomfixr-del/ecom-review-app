@@ -78,6 +78,7 @@ export const loader = async ({ request }) => {
   return jsonResponse({
     ok: true,
     enabled: settings.enabled,
+    currency: "BDT",
     pointUnitName: settings.pointUnitName,
     pointsPerDollar: settings.pointsPerDollar,
     redemptionTiers: settings.redemptionTiers,

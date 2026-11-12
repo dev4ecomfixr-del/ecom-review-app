@@ -7,8 +7,8 @@ export const DEFAULT_REWARD_POINT_SETTINGS = {
   minSpend: 0,
   pointUnitName: "Points",
   redemptionTiers: [
-    { points: 100, type: "FIXED_AMOUNT", value: 5, label: "$5 off" },
-    { points: 200, type: "FIXED_AMOUNT", value: 10, label: "$10 off" },
+    { points: 100, type: "FIXED_AMOUNT", value: 5, label: "BDT 5 off" },
+    { points: 200, type: "FIXED_AMOUNT", value: 10, label: "BDT 10 off" },
     { points: 500, type: "PERCENTAGE", value: 25, label: "25% off" },
   ],
   couponLifetimeDays: 30,
@@ -41,7 +41,15 @@ export const getRewardPointSettings = async (shop) => {
     if (record.redemptionTiersJson) {
       const parsed = JSON.parse(record.redemptionTiersJson);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        redemptionTiers = parsed;
+        redemptionTiers = parsed.map((tier) => {
+          if (tier.type === "FIXED_AMOUNT" && typeof tier.label === "string" && tier.label.includes("$")) {
+            return {
+              ...tier,
+              label: tier.label.replace(/\$/g, "BDT ").replace(/\s+/g, " ").trim(),
+            };
+          }
+          return tier;
+        });
       }
     }
   } catch (e) {
@@ -62,9 +70,16 @@ export const getRewardPointSettings = async (shop) => {
 export const saveRewardPointSettings = async (shop, settings) => {
   if (!db.rewardPointSetting) return DEFAULT_REWARD_POINT_SETTINGS;
 
-  const redemptionTiersJson = JSON.stringify(
-    Array.isArray(settings.redemptionTiers) ? settings.redemptionTiers : DEFAULT_REWARD_POINT_SETTINGS.redemptionTiers,
-  );
+  const rawTiers = Array.isArray(settings.redemptionTiers) ? settings.redemptionTiers : DEFAULT_REWARD_POINT_SETTINGS.redemptionTiers;
+  const sanitizedTiers = rawTiers.map((tier) => {
+    if (tier.type === "FIXED_AMOUNT") {
+      const label = (tier.label || `BDT ${tier.value} off`).replace(/\$/g, "BDT ").replace(/\s+/g, " ").trim();
+      return { ...tier, label };
+    }
+    return tier;
+  });
+
+  const redemptionTiersJson = JSON.stringify(sanitizedTiers);
 
   const updated = await db.rewardPointSetting.upsert({
     where: { shop },
@@ -126,7 +141,7 @@ export const awardPointsForOrder = async (shop, orderPayload) => {
   );
 
   if (settings.minSpend > 0 && orderSpend < settings.minSpend) {
-    return { awarded: false, reason: `Order total $${orderSpend} is below minimum spend $${settings.minSpend}` };
+    return { awarded: false, reason: `Order total ${orderSpend} BDT is below minimum spend ${settings.minSpend} BDT` };
   }
 
   const pointsToAward = Math.floor(orderSpend * settings.pointsPerDollar);
@@ -178,7 +193,7 @@ export const awardPointsForOrder = async (shop, orderPayload) => {
         orderName,
         points: pointsToAward,
         type: "PURCHASE_EARN",
-        description: `Earned ${pointsToAward} points from order ${orderName} ($${orderSpend.toFixed(2)})`,
+        description: `Earned ${pointsToAward} points from order ${orderName} (BDT ${orderSpend.toFixed(2)})`,
       },
     });
   }
@@ -272,7 +287,7 @@ export const redeemPointsForDiscountCoupon = async (admin, shop, customerEmail, 
 
     const discountTitle = discountType === "PERCENTAGE"
       ? `Reward Points · ${discountValue}% off`
-      : `Reward Points · $${discountValue} off`;
+      : `Reward Points · BDT ${discountValue} off`;
 
     const customerGetsValue = discountType === "PERCENTAGE"
       ? { percentage: discountValue / 100 }
@@ -332,6 +347,7 @@ export const redeemPointsForDiscountCoupon = async (admin, shop, customerEmail, 
 
       // Record transaction
       if (db.pointTransaction) {
+        const cleanLabel = (tier.label || `BDT ${discountValue} off`).replace(/\$/g, "BDT ").replace(/\s+/g, " ").trim();
         await db.pointTransaction.create({
           data: {
             shop,
@@ -340,7 +356,7 @@ export const redeemPointsForDiscountCoupon = async (admin, shop, customerEmail, 
             points: -requiredPoints,
             type: "COUPON_REDEEM",
             couponCode: confirmedCode,
-            description: `Redeemed ${requiredPoints} points for ${tier.label || `$${discountValue} off`} coupon (${confirmedCode})`,
+            description: `Redeemed ${requiredPoints} points for ${cleanLabel} coupon (${confirmedCode})`,
           },
         });
       }

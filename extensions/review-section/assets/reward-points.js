@@ -25,6 +25,16 @@
     let currentBalance = 0;
     let pointSettings = null;
 
+    const getCurrency = () => {
+      const detected = (
+        pointSettings?.currency ||
+        root.dataset.currency ||
+        window.Shopify?.currency?.active ||
+        "BDT"
+      ).trim();
+      return detected || "BDT";
+    };
+
     const openModal = () => {
       overlay.style.display = "flex";
       loadCustomerPoints();
@@ -84,7 +94,8 @@
 
         if (earnTextEl) {
           const rate = data.pointsPerDollar || 1;
-          earnTextEl.textContent = `Earn ${rate} ${data.pointUnitName || "point"}${rate > 1 ? "s" : ""} for every $1 spent on all store purchases.`;
+          const currency = getCurrency();
+          earnTextEl.textContent = `Earn ${rate} ${data.pointUnitName || "Points"} for every 1 ${currency} spent on all store purchases.`;
         }
 
         renderTiers(data.redemptionTiers || []);
@@ -104,10 +115,15 @@
         return;
       }
 
+      const currency = getCurrency();
+
       tiersContainer.innerHTML = tiers
         .map((tier, index) => {
           const canRedeem = customerEmail && currentBalance >= tier.points;
-          const discountLabel = tier.type === "PERCENTAGE" ? `${tier.value}% Off Discount` : `$${tier.value} Off Discount`;
+          const rawLabel = (tier.label || "").replace(/\$/g, `${currency} `).trim();
+          const discountLabel = tier.type === "PERCENTAGE"
+            ? `${tier.value}% Off Discount`
+            : `${currency} ${tier.value} Off Discount`;
 
           return `
             <div class="rl-tier-card" data-tier-index="${index}">
@@ -126,7 +142,7 @@
                   !customerEmail
                     ? "Enter email above"
                     : canRedeem
-                    ? `Redeem (${tier.label || discountLabel})`
+                    ? `Redeem (${rawLabel || discountLabel})`
                     : `Need ${tier.points - currentBalance} more`
                 }
               </button>
@@ -151,10 +167,14 @@
         return;
       }
 
+      const currency = getCurrency();
+
       activeCouponsSection.style.display = "block";
       couponsContainer.innerHTML = coupons
         .map((c) => {
-          const disc = c.discountType === "PERCENTAGE" ? `${c.discountValue}% off` : `$${c.discountValue} off`;
+          const disc = c.discountType === "PERCENTAGE"
+            ? `${c.discountValue}% off`
+            : `${currency} ${c.discountValue} off`;
           return `
             <div class="rl-coupon-card">
               <div>
