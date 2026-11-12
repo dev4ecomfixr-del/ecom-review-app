@@ -290,7 +290,13 @@
           if (sort === "lowest") return Number(a.rating) - Number(b.rating);
           return new Date(b.createdAt) - new Date(a.createdAt);
         });
-      if (resultsCountOutput) resultsCountOutput.textContent = String(reviews.length);
+      if (resultsCountOutput) {
+        resultsCountOutput.textContent = String(reviews.length);
+        const wordEl = widget.querySelector("[data-review-results-word]");
+        if (wordEl) {
+          wordEl.textContent = reviews.length === 1 ? "review" : "reviews";
+        }
+      }
 
       if (!usesPagination) {
         if (pagination) pagination.hidden = true;
@@ -466,14 +472,36 @@
     }
 
     list.addEventListener("click", (event) => {
-      const photoButton = event.target.closest("[data-review-photo-open]");
+      const mediaButton = event.target.closest(
+        "[data-review-media-open], [data-review-photo-open]",
+      );
 
-      if (!photoButton) return;
+      if (!mediaButton) return;
 
-      openPhotoViewer({
-        alt: photoButton.dataset.photoAlt || "Review photo",
-        url: photoButton.dataset.photoUrl,
-      });
+      const container = mediaButton.closest("[data-review-media-list]");
+      let items = [];
+      let index = Number(mediaButton.dataset.mediaIndex || 0);
+
+      if (container && container.dataset.reviewMediaList) {
+        try {
+          items = JSON.parse(container.dataset.reviewMediaList);
+        } catch (_) {}
+      }
+
+      if (!items.length) {
+        const url = mediaButton.dataset.mediaUrl || mediaButton.dataset.photoUrl;
+        const alt =
+          mediaButton.dataset.mediaAlt ||
+          mediaButton.dataset.photoAlt ||
+          "Review media";
+        const isVideo =
+          mediaButton.dataset.mediaType === "VIDEO" ||
+          mediaButton.classList.contains("ecom-reviewer__media-thumb--video");
+        items = [{ url, alt, mediaType: isVideo ? "VIDEO" : "IMAGE" }];
+        index = 0;
+      }
+
+      openMediaViewer({ items, index });
     });
 
     form.addEventListener("submit", async (event) => {
@@ -554,71 +582,206 @@
       .join("") || "C";
   }
 
+  let activeMediaGallery = [];
+  let activeMediaIndex = 0;
+
   function renderMedia(media) {
     const validMedia = media.filter((item) => item.url);
 
     if (!validMedia.length) return "";
 
+    const mediaListJson = escapeHtml(JSON.stringify(validMedia));
+
     return `
-      <div class="ecom-reviewer__review-photos">
+      <div class="ecom-reviewer__review-photos" data-review-media-list="${mediaListJson}">
         ${validMedia
-          .map((item) => {
+          .map((item, index) => {
             const alt = escapeHtml(item.alt || "Review media");
             const url = escapeHtml(item.url);
+            const isVideo =
+              item.mediaType === "VIDEO" ||
+              /\.(mp4|mov|webm|m3u8)(\?|$)/i.test(url);
 
-            if (item.mediaType === "VIDEO") {
-              return `<video src="${url}" controls playsinline preload="metadata" aria-label="${alt}"></video>`;
+            if (isVideo) {
+              return `
+                <button
+                  type="button"
+                  class="ecom-reviewer__media-thumb ecom-reviewer__media-thumb--video"
+                  data-review-media-open
+                  data-media-index="${index}"
+                  data-media-url="${url}"
+                  data-media-alt="${alt}"
+                  data-media-type="VIDEO"
+                  aria-label="Play review video"
+                >
+                  <video src="${url}#t=0.001" preload="metadata" playsinline muted></video>
+                  <span class="ecom-reviewer__video-play-btn" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="#ffffff" width="20" height="20">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </span>
+                  <span class="ecom-reviewer__video-badge">VIDEO</span>
+                </button>
+              `;
             }
 
-            return `<button type="button" data-review-photo-open data-photo-url="${url}" data-photo-alt="${alt}" aria-label="Open review photo"><img src="${url}" alt="${alt}" loading="lazy"></button>`;
+            return `
+              <button
+                type="button"
+                class="ecom-reviewer__media-thumb"
+                data-review-media-open
+                data-media-index="${index}"
+                data-media-url="${url}"
+                data-media-alt="${alt}"
+                data-media-type="IMAGE"
+                aria-label="Open review photo"
+              >
+                <img src="${url}" alt="${alt}" loading="lazy">
+              </button>
+            `;
           })
           .join("")}
       </div>
     `;
   }
 
-  function openPhotoViewer({ alt, url }) {
-    if (!url) return;
+  function openMediaViewer({ items, index }) {
+    if (!items || !items.length) return;
 
-    let viewer = document.querySelector("[data-review-photo-viewer]");
+    activeMediaGallery = items;
+    activeMediaIndex = Math.max(0, Math.min(index || 0, items.length - 1));
+
+    let viewer = document.querySelector("[data-review-media-viewer]");
 
     if (!viewer) {
       viewer = document.createElement("div");
-      viewer.className = "ecom-reviewer__photo-viewer";
+      viewer.className = "ecom-reviewer__media-viewer";
+      viewer.dataset.reviewMediaViewer = "true";
       viewer.dataset.reviewPhotoViewer = "true";
       viewer.innerHTML = `
-        <button class="ecom-reviewer__photo-viewer-close" type="button" data-review-photo-close aria-label="Close review photo">×</button>
-        <img alt="">
+        <button class="ecom-reviewer__media-viewer-close" type="button" data-review-media-close aria-label="Close">×</button>
+        <button class="ecom-reviewer__media-viewer-nav ecom-reviewer__media-viewer-prev" type="button" data-review-media-prev aria-label="Previous">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <button class="ecom-reviewer__media-viewer-nav ecom-reviewer__media-viewer-next" type="button" data-review-media-next aria-label="Next">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+        <div class="ecom-reviewer__media-viewer-stage" data-review-media-stage>
+          <img alt="" class="ecom-reviewer__media-viewer-img" hidden>
+          <div class="ecom-reviewer__media-viewer-video-wrap" hidden>
+            <video controls autoplay playsinline preload="auto" class="ecom-reviewer__media-viewer-video"></video>
+          </div>
+        </div>
       `;
       document.body.appendChild(viewer);
 
       viewer.addEventListener("click", (event) => {
         if (
           event.target === viewer ||
-          event.target.closest("[data-review-photo-close]")
+          event.target.closest("[data-review-media-close]") ||
+          event.target.dataset.reviewMediaStage !== undefined
         ) {
-          closePhotoViewer(viewer);
+          closeMediaViewer(viewer);
+        } else if (event.target.closest("[data-review-media-prev]")) {
+          navigateMediaViewer(-1, viewer);
+        } else if (event.target.closest("[data-review-media-next]")) {
+          navigateMediaViewer(1, viewer);
         }
       });
 
       document.addEventListener("keydown", (event) => {
+        if (!viewer || viewer.hidden) return;
         if (event.key === "Escape") {
-          closePhotoViewer(viewer);
+          closeMediaViewer(viewer);
+        } else if (event.key === "ArrowLeft") {
+          navigateMediaViewer(-1, viewer);
+        } else if (event.key === "ArrowRight") {
+          navigateMediaViewer(1, viewer);
         }
       });
     }
 
-    const image = viewer.querySelector("img");
-    image.src = url;
-    image.alt = alt;
+    renderMediaViewerItem(viewer);
     viewer.hidden = false;
     document.documentElement.classList.add("ecom-reviewer-photo-open");
   }
 
-  function closePhotoViewer(viewer) {
-    if (!viewer || viewer.hidden) return;
+  function renderMediaViewerItem(viewer) {
+    if (!viewer || !activeMediaGallery.length) return;
 
+    const item = activeMediaGallery[activeMediaIndex];
+    if (!item) return;
+
+    const img = viewer.querySelector(".ecom-reviewer__media-viewer-img");
+    const videoWrap = viewer.querySelector(
+      ".ecom-reviewer__media-viewer-video-wrap",
+    );
+    const video = viewer.querySelector(".ecom-reviewer__media-viewer-video");
+    const prevBtn = viewer.querySelector("[data-review-media-prev]");
+    const nextBtn = viewer.querySelector("[data-review-media-next]");
+
+    if (prevBtn) prevBtn.hidden = activeMediaGallery.length <= 1;
+    if (nextBtn) nextBtn.hidden = activeMediaGallery.length <= 1;
+
+    const isVideo =
+      item.mediaType === "VIDEO" ||
+      /\.(mp4|mov|webm|m3u8)(\?|$)/i.test(item.url || "");
+
+    if (isVideo) {
+      if (img) {
+        img.hidden = true;
+        img.src = "";
+      }
+      if (videoWrap && video) {
+        videoWrap.hidden = false;
+        video.src = item.url;
+        video.play().catch(() => {});
+      }
+    } else {
+      if (video) {
+        video.pause();
+        video.src = "";
+      }
+      if (videoWrap) videoWrap.hidden = true;
+      if (img) {
+        img.hidden = false;
+        img.src = item.url;
+        img.alt = item.alt || "Review photo";
+      }
+    }
+  }
+
+  function navigateMediaViewer(direction, viewer) {
+    if (!activeMediaGallery.length) return;
+    activeMediaIndex =
+      (activeMediaIndex + direction + activeMediaGallery.length) %
+      activeMediaGallery.length;
+    renderMediaViewerItem(viewer);
+  }
+
+  function closeMediaViewer(viewer) {
+    if (!viewer || viewer.hidden) return;
+    const video = viewer.querySelector(".ecom-reviewer__media-viewer-video");
+    if (video) {
+      video.pause();
+      video.src = "";
+    }
     viewer.hidden = true;
     document.documentElement.classList.remove("ecom-reviewer-photo-open");
+  }
+
+  function openPhotoViewer({ alt, url }) {
+    openMediaViewer({
+      items: [{ url, alt, mediaType: "IMAGE" }],
+      index: 0,
+    });
+  }
+
+  function closePhotoViewer(viewer) {
+    closeMediaViewer(viewer);
   }
 })();

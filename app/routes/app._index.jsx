@@ -58,6 +58,7 @@ export const loader = async ({ request }) => {
     ] = await Promise.all([
       reviewDelegate.findMany({
         where: { shop: session.shop },
+        include: { photos: true },
         orderBy: { createdAt: "desc" },
         take: 25,
       }).catch((e) => {
@@ -157,6 +158,7 @@ export default function Dashboard() {
   const [productSearch, setProductSearch] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
+  const [activeModalMedia, setActiveModalMedia] = useState(null);
 
   useEffect(() => {
     if (fetcher.data?.ok && fetcher.data?.reviewId) {
@@ -536,6 +538,44 @@ export default function Dashboard() {
                     <div className={styles.reviewContent}>
                       <span>Customer review</span>
                       <p className={styles.reviewBody}>{review.body}</p>
+                      {review.photos && review.photos.length > 0 && (
+                        <div className={styles.reviewPhotosRow}>
+                          {review.photos.map((photo, pIdx) => {
+                            const isVid =
+                              photo.mediaType === "VIDEO" ||
+                              /\.(mp4|mov|webm|m3u8)(\?|$)/i.test(photo.url || "");
+                            return (
+                              <button
+                                key={photo.id || pIdx}
+                                type="button"
+                                className={`${styles.reviewThumbBtn} ${isVid ? styles.reviewThumbVideo : ""}`}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setActiveModalMedia({
+                                    url: photo.url,
+                                    isVideo: isVid,
+                                    alt: photo.alt || "Review media",
+                                  });
+                                }}
+                                aria-label={isVid ? "Play video" : "View photo"}
+                              >
+                                {isVid ? (
+                                  <>
+                                    <video src={`${photo.url}#t=0.001`} preload="metadata" muted playsInline />
+                                    <span className={styles.thumbPlayIcon} aria-hidden="true">
+                                      ▶
+                                    </span>
+                                    <span className={styles.thumbVideoBadge}>VIDEO</span>
+                                  </>
+                                ) : (
+                                  <img src={photo.url} alt={photo.alt || "Review media"} loading="lazy" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                     {currentReply ? (
                       <div className={styles.merchantReply}>
@@ -711,6 +751,44 @@ export default function Dashboard() {
           </s-section>
         </aside>
       </div>
+
+      {activeModalMedia && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setActiveModalMedia(null)}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className={styles.modalCloseBtn}
+              onClick={() => setActiveModalMedia(null)}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+            {activeModalMedia.isVideo ? (
+              <div className={styles.modalVideoWrap}>
+                <video
+                  src={activeModalMedia.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className={styles.modalVideo}
+                />
+              </div>
+            ) : (
+              <img
+                src={activeModalMedia.url}
+                alt={activeModalMedia.alt || "Review media"}
+                className={styles.modalImage}
+              />
+            )}
+          </div>
+        </div>
+      )}
     </s-page>
   );
 }
