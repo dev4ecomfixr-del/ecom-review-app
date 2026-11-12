@@ -58,6 +58,9 @@ export const createUniqueReviewDiscount = async (admin, settings) => {
             },
             appliesOncePerCustomer: true,
             usageLimit: 1,
+            combinesWith: {
+              productDiscounts: true,
+            },
           },
         },
       },
