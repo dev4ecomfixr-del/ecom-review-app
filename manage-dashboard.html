@@ -102,16 +102,23 @@
     /* ==========================================================================
        1. LOGIN AUTHENTICATION PORTAL (PROFESSIONAL SAAS WHITE THEME)
        ========================================================================== */
+    /* ==========================================================================
+       1. LOGIN AUTHENTICATION PORTAL (ULTRA-PREMIUM MODERN SAAS)
+       ========================================================================== */
     .login-container {
       position: fixed;
       inset: 0;
       z-index: 9999;
-      background: radial-gradient(circle at 50% 20%, #ffffff 0%, #f4f4f5 100%);
+      background-color: #fafafa;
+      background-image: 
+        radial-gradient(#e4e4e7 1px, transparent 1px),
+        radial-gradient(circle at 50% 0%, rgba(24, 24, 27, 0.04) 0%, transparent 70%);
+      background-size: 24px 24px, 100% 100%;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 1.5rem;
-      transition: opacity 0.35s ease, visibility 0.35s ease;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
     }
 
     .login-container.hidden {
@@ -122,24 +129,28 @@
 
     .login-card {
       width: 100%;
-      max-width: 440px;
+      max-width: 420px;
       background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-xl);
-      padding: 2.75rem 2.25rem;
-      box-shadow: var(--shadow-xl);
+      border: 1px solid #e4e4e7;
+      border-radius: 20px;
+      padding: 2.75rem 2.25rem 2.25rem;
+      box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.03),
+        0 20px 40px -15px rgba(24, 24, 27, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.8) inset;
       animation: loginFadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
     }
 
     @keyframes loginFadeUp {
-      from { opacity: 0; transform: translateY(16px) scale(0.98); }
+      from { opacity: 0; transform: translateY(14px) scale(0.985); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-8px); }
-      40%, 80% { transform: translateX(8px); }
+      20%, 60% { transform: translateX(-7px); }
+      40%, 80% { transform: translateX(7px); }
     }
     .shake { animation: shake 0.4s ease-in-out; }
 
@@ -152,35 +163,65 @@
     }
 
     .login-logo-glow {
-      width: 58px;
-      height: 58px;
-      border-radius: 16px;
-      background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(145deg, #27272a 0%, #18181b 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffffff;
-      box-shadow: 0 8px 20px -4px rgba(24, 24, 27, 0.25);
-      margin-bottom: 1.15rem;
+      box-shadow: 
+        0 8px 20px -4px rgba(24, 24, 27, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      margin-bottom: 1rem;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .login-logo-glow:hover {
+      transform: translateY(-2px) scale(1.02);
+    }
+
+    .login-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.18rem 0.55rem;
+      border-radius: var(--radius-pill);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: #f4f4f5;
+      color: #52525b;
+      border: 1px solid #e4e4e7;
+      margin-bottom: 0.65rem;
+    }
+    .login-badge .badge-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #18181b;
     }
 
     .login-brand h2 {
-      font-size: 1.5rem;
+      font-size: 1.45rem;
       font-weight: 800;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.03em;
       color: var(--text-main);
+      line-height: 1.25;
     }
 
     .login-brand p {
       color: var(--text-muted);
-      font-size: 0.88rem;
+      font-size: 0.84rem;
       margin-top: 0.35rem;
+      line-height: 1.4;
     }
 
     .login-form {
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      gap: 1.15rem;
     }
 
     .form-group {
@@ -190,111 +231,153 @@
     }
 
     .form-label {
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
       color: var(--text-muted);
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
 
     .input-wrapper {
       position: relative;
       display: flex;
       align-items: center;
+      width: 100%;
     }
 
-    .input-wrapper svg {
+    .input-wrapper svg.input-lead-icon {
       position: absolute;
-      left: 1rem;
-      color: var(--text-sub);
+      left: 0.95rem;
+      color: #a1a1aa;
       pointer-events: none;
       transition: color 0.2s;
     }
 
     .input-wrapper input {
       width: 100%;
+      height: 44px;
       background: #fafafa;
-      border: 1px solid var(--border-strong);
+      border: 1px solid #e4e4e7;
       color: var(--text-main);
-      padding: 0.85rem 1rem 0.85rem 2.75rem;
+      padding: 0 2.85rem 0 2.65rem;
       border-radius: var(--radius-md);
-      font-size: 0.95rem;
+      font-size: 0.9rem;
+      font-weight: 500;
       outline: none;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) inset;
     }
 
     .input-wrapper input:focus {
-      border-color: var(--primary);
+      border-color: #18181b;
       background: #ffffff;
-      box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.08);
+      box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
     }
-    .input-wrapper input:focus + svg,
-    .input-wrapper input:focus ~ svg {
-      color: var(--primary);
+    .input-wrapper input:focus ~ .input-lead-icon {
+      color: #18181b;
     }
 
     .toggle-pass-btn {
       position: absolute;
-      right: 0.75rem;
+      right: 0.55rem;
       background: transparent;
       border: none;
-      color: var(--text-muted);
+      color: #a1a1aa;
       cursor: pointer;
-      padding: 0.35rem;
+      padding: 0.4rem;
       border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.15s ease;
     }
-    .toggle-pass-btn:hover { color: var(--text-main); }
+    .toggle-pass-btn:hover {
+      color: #18181b;
+      background: #f4f4f5;
+    }
 
     .login-checkbox-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
+      margin-top: 0.1rem;
     }
 
     .login-checkbox-row label {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.45rem;
       cursor: pointer;
       user-select: none;
+      font-weight: 500;
     }
 
     .login-checkbox-row input[type="checkbox"] {
-      accent-color: var(--primary);
-      width: 16px;
-      height: 16px;
+      accent-color: #18181b;
+      width: 15px;
+      height: 15px;
       cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .advanced-api-toggle {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: #71717a;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.2rem 0.45rem;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .advanced-api-toggle:hover {
+      color: #18181b;
+      background: #f4f4f5;
+      border-color: #e4e4e7;
     }
 
     .login-btn {
-      background: #18181b;
+      background: linear-gradient(180deg, #27272a 0%, #18181b 100%);
       color: #ffffff;
-      border: none;
-      padding: 0.85rem;
+      border: 1px solid #18181b;
+      height: 46px;
       border-radius: var(--radius-md);
       font-weight: 700;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
+      letter-spacing: -0.01em;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.6rem;
-      box-shadow: 0 4px 14px rgba(24, 24, 27, 0.18);
-      transition: all 0.2s ease;
-      margin-top: 0.4rem;
+      gap: 0.55rem;
+      box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        0 4px 14px -2px rgba(24, 24, 27, 0.22);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-top: 0.5rem;
     }
 
     .login-btn:hover {
-      background: #09090b;
+      background: linear-gradient(180deg, #18181b 0%, #09090b 100%);
       transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(24, 24, 27, 0.25);
+      box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 8px 20px -3px rgba(24, 24, 27, 0.28);
+    }
+    .login-btn:hover svg.login-btn-arrow {
+      transform: translateX(3px);
+    }
+    .login-btn svg.login-btn-arrow {
+      transition: transform 0.2s ease;
     }
 
     .login-btn:disabled {
@@ -303,9 +386,25 @@
       transform: none !important;
     }
 
+    .login-security-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid #f4f4f5;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #a1a1aa;
+    }
+    .login-security-footer svg {
+      color: #71717a;
+    }
+
     .login-error-banner {
       display: none;
-      background: #f4f4f5;
+      background: #fafafa;
       border: 1px solid #d4d4d8;
       color: var(--text-main);
       padding: 0.75rem 1rem;
@@ -316,15 +415,6 @@
       gap: 0.5rem;
       margin-bottom: 1rem;
     }
-
-    .advanced-api-toggle {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
-    .advanced-api-toggle:hover { color: var(--primary); }
 
     /* ==========================================================================
        2. MAIN DASHBOARD APPLICATION (WHITE / SAAS THEME)
@@ -885,103 +975,95 @@
     .badge-growth { background: var(--growth-bg); color: var(--growth); border: 1px solid var(--growth-border); }
     .badge-starter { background: var(--starter-bg); color: var(--starter); border: 1px solid var(--starter-border); }
 
-    /* iOS-Style Access Toggle */
-    .access-toggle-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.25rem 0.65rem;
-      border-radius: var(--radius-pill);
-      font-size: 0.7rem;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 1px solid transparent;
-      user-select: none;
-    }
-
-    .access-toggle-btn.access-on {
-      background: #18181b;
-      color: #ffffff;
-      border-color: #18181b;
-    }
-    .access-toggle-btn.access-on:hover {
-      background: #09090b;
-    }
-
-    .access-toggle-btn.access-off {
-      background: #f4f4f5;
-      color: var(--text-muted);
-      border-color: var(--border);
-    }
-    .access-toggle-btn.access-off:hover {
-      background: #e4e4e7;
-      color: var(--text-main);
-    }
-
-    .access-toggle-btn.access-loading {
-      background: #f4f4f5;
-      color: var(--text-muted);
-      border-color: var(--border);
-      cursor: wait;
-      pointer-events: none;
-      opacity: 0.85;
-    }
-
-    .access-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-    }
-    .access-on .access-dot { background: #ffffff; box-shadow: 0 0 5px rgba(255, 255, 255, 0.8); }
-    .access-off .access-dot { background: #a1a1aa; }
-
-    /* Cycle ON / OFF Toggle Pill */
+    /* ==========================================================================
+       SLIDE PILL TOGGLES: GREEN FOR ON, RED FOR OFF
+       ========================================================================== */
+    .access-toggle-btn,
     .cycle-toggle-btn {
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
-      padding: 0.18rem 0.52rem;
+      gap: 0.45rem;
       border-radius: var(--radius-pill);
-      font-size: 0.65rem;
+      font-size: 0.66rem;
       font-weight: 800;
       letter-spacing: 0.04em;
       text-transform: uppercase;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       border: 1px solid transparent;
       user-select: none;
-      line-height: 1.2;
+      line-height: 1;
+      white-space: nowrap;
+      transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+      position: relative;
     }
 
+    .access-toggle-btn {
+      padding: 0.25rem 0.65rem;
+    }
+
+    .cycle-toggle-btn {
+      padding: 0.22rem 0.55rem;
+    }
+
+    /* ON STATE: Vibrant Emerald Green (#10b981) + Knob on the Right */
+    .access-toggle-btn.access-on,
     .cycle-toggle-btn.cycle-on {
-      background: #18181b;
+      background: #10b981;
       color: #ffffff;
-      border-color: #18181b;
+      border-color: #059669;
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+      flex-direction: row-reverse;
+      padding-left: 0.65rem;
+      padding-right: 0.35rem;
     }
+    .access-toggle-btn.access-on:hover,
     .cycle-toggle-btn.cycle-on:hover {
-      background: #09090b;
+      background: #059669;
+      box-shadow: 0 3px 8px rgba(16, 185, 129, 0.45);
     }
 
+    /* OFF STATE: Vibrant Crimson Red (#ef4444) + Knob on the Left */
+    .access-toggle-btn.access-off,
     .cycle-toggle-btn.cycle-off {
-      background: #f4f4f5;
-      color: var(--text-muted);
-      border-color: var(--border);
+      background: #ef4444;
+      color: #ffffff;
+      border-color: #dc2626;
+      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+      flex-direction: row;
+      padding-left: 0.35rem;
+      padding-right: 0.65rem;
     }
+    .access-toggle-btn.access-off:hover,
     .cycle-toggle-btn.cycle-off:hover {
-      background: #e4e4e7;
-      color: var(--text-main);
+      background: #dc2626;
+      box-shadow: 0 3px 8px rgba(239, 68, 68, 0.4);
     }
 
-    .cycle-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
+    /* Loading state */
+    .access-toggle-btn.access-loading {
+      background: #71717a;
+      color: #ffffff;
+      border-color: #52525b;
+      cursor: wait;
+      pointer-events: none;
+      opacity: 0.9;
     }
-    .cycle-on .cycle-dot { background: #ffffff; box-shadow: 0 0 5px rgba(255, 255, 255, 0.8); }
-    .cycle-off .cycle-dot { background: #a1a1aa; }
+
+    /* Slide Knob / Dot (White Circle with Smooth Slide) */
+    .access-dot,
+    .cycle-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+      flex-shrink: 0;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .access-on .access-dot,
+    .cycle-on .cycle-dot {
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.85);
+    }
 
     /* Quota Meter in Card */
     .quota-meter-box {
@@ -1284,11 +1366,13 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 0.45rem;
       font-size: 0.68rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--text-muted);
+      white-space: nowrap;
     }
 
     .metric-mini-icon {
@@ -1575,10 +1659,14 @@
   <div id="loginPortal" class="login-container">
     <div class="login-card" id="loginCard">
       <div class="login-brand">
-        <div class="login-logo-glow">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="login-logo-glow" title="ReviewLift Console">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
           </svg>
+        </div>
+        <div class="login-badge">
+          <span class="badge-dot"></span>
+          <span>Partner Control Plane</span>
         </div>
         <h2>ReviewLift Console</h2>
         <p>Partner & Store Package Administration</p>
@@ -1591,11 +1679,16 @@
 
       <form class="login-form" onsubmit="handleLoginSubmit(event)">
         <div class="form-group">
-          <label class="form-label" for="loginSecret">Admin Secret Key</label>
+          <label class="form-label" for="loginSecret">
+            <span>Admin Secret Key</span>
+          </label>
           <div class="input-wrapper">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <svg class="input-lead-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
             <input type="password" id="loginSecret" placeholder="Enter reviewlift_secret_2026" required autocomplete="current-password">
-            <button type="button" class="toggle-pass-btn" onclick="togglePasswordVisibility('loginSecret')">
+            <button type="button" class="toggle-pass-btn" onclick="togglePasswordVisibility('loginSecret')" title="Toggle key visibility">
               <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             </button>
           </div>
@@ -1604,7 +1697,7 @@
         <div id="loginApiUrlGroup" class="form-group" style="display:none;">
           <label class="form-label" for="loginApiUrl">App API Base URL</label>
           <div class="input-wrapper">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            <svg class="input-lead-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
             <input type="text" id="loginApiUrl" placeholder="https://review-lift-miki.ecomfixr.com">
           </div>
         </div>
@@ -1614,13 +1707,21 @@
             <input type="checkbox" id="loginRemember" checked>
             <span>Remember on this browser</span>
           </label>
-          <span class="advanced-api-toggle" onclick="toggleLoginAdvancedApi()">API Host</span>
+          <button type="button" class="advanced-api-toggle" onclick="toggleLoginAdvancedApi()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span>API Host</span>
+          </button>
         </div>
 
         <button type="submit" id="loginBtn" class="login-btn">
           <span>Sign In to Console</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          <svg class="login-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
         </button>
+
+        <div class="login-security-footer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>End-to-End Encrypted Admin Session</span>
+        </div>
       </form>
     </div>
   </div>
@@ -2083,7 +2184,17 @@
     // Toggle Password Visibility
     function togglePasswordVisibility(inputId) {
       const el = document.getElementById(inputId);
-      el.type = el.type === "password" ? "text" : "password";
+      if (!el) return;
+      const isPass = el.type === "password";
+      el.type = isPass ? "text" : "password";
+      const icon = document.getElementById("eyeIcon");
+      if (icon) {
+        if (isPass) {
+          icon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+        } else {
+          icon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
+        }
+      }
     }
 
     function toggleLoginAdvancedApi() {
